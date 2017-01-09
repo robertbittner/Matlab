@@ -1,4 +1,4 @@
-function transferCurrentSubjectDataToServerATWM1();
+function transferCurrentSubjectDataToServerATWM1()
 
 clear all
 clc
@@ -12,7 +12,7 @@ parametersStudy         = eval(['parametersStudy', iStudy]);
 parametersGroups        = eval(['parametersGroups', iStudy]);
 
 %%% Check, whether all relevant local and server folders can be accessed
-hFunction = str2func(sprintf('checkFolderAccess%s', iStudy));
+hFunction = str2func(sprintf('checkLocalComputerFolderAccess%s', iStudy));
 bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
 if bAllFoldersCanBeAccessed == false
     error('Folders for study %s cannot be accessed.', iStudy);
@@ -42,7 +42,7 @@ transferLocalSubjectInformationFilesToServerATWM1(aPathOriginalBarcodeFile, aPat
 end
 
 
-function strSubjectArrayFile = prepareSubjectArrayFileForTransferATWM1(folderDefinition, parametersStudy);
+function strSubjectArrayFile = prepareSubjectArrayFileForTransferATWM1(folderDefinition, parametersStudy)
 global iStudy
 % Check, whether subject array exists
 strSubjectArrayFile = sprintf('aSubject%s_%s.m', iStudy, parametersStudy.strImaging);
@@ -57,7 +57,7 @@ end
 end
 
 
-function strAdditionalSubjectInformationFile = prepareAdditionalSubjectInformationFileForTransferATWM1(folderDefinition, parametersStudy);
+function strAdditionalSubjectInformationFile = prepareAdditionalSubjectInformationFileForTransferATWM1(folderDefinition, parametersStudy)
 global iStudy
 % Check, whether subject array exists
 strAdditionalSubjectInformationFile = sprintf('aAdditionalSubjectInformation%s_%s.m', iStudy, parametersStudy.strImaging);
@@ -72,7 +72,7 @@ end
 end
 
 
-function [aPathOriginalBarcodeFile, aPathTransferBarcodeFile, aPathOriginalSubjectCodeFile, aPathTransferSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathTransferSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathTransferAdditionalSubjectInformationFile, bAbortTransfer] = prepareFilesForTransferATWM1(folderDefinition, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strAdditionalSubjectInformationFile, nrOfSubjects);
+function [aPathOriginalBarcodeFile, aPathTransferBarcodeFile, aPathOriginalSubjectCodeFile, aPathTransferSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathTransferSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathTransferAdditionalSubjectInformationFile, bAbortTransfer] = prepareFilesForTransferATWM1(folderDefinition, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strAdditionalSubjectInformationFile, nrOfSubjects)
 %%% Compare orginal files and backup files
 bAbortTransfer = false;
 for cs = 1:nrOfSubjects
@@ -117,7 +117,7 @@ end
 end
 
 
-function bAbortTransfer = detectMoreRecentChangeOfServerFileATWM1(bAbortTransfer, pathOriginalFile, pathTransferFile);
+function bAbortTransfer = detectMoreRecentChangeOfServerFileATWM1(bAbortTransfer, pathOriginalFile, pathTransferFile)
 
 if exist(pathTransferFile, 'file')
     strucLocalFile = dir(pathOriginalFile);
@@ -134,7 +134,7 @@ end
 end
 
 
-function transferLocalSubjectInformationFilesToServerATWM1(aPathOriginalBarcodeFile, aPathTransferBarcodeFile, aPathOriginalSubjectCodeFile, aPathTransferSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathTransferSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathTransferAdditionalSubjectInformationFile, nrOfSubjects);
+function transferLocalSubjectInformationFilesToServerATWM1(aPathOriginalBarcodeFile, aPathTransferBarcodeFile, aPathOriginalSubjectCodeFile, aPathTransferSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathTransferSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathTransferAdditionalSubjectInformationFile, nrOfSubjects)
 bLocalFilesTransferredToServer = false;
 %%% Backup barcode files
 for cs = 1:nrOfSubjects
@@ -182,7 +182,7 @@ end
 end
 
 
-function bAbortTransfer = compareChangeDateOfLocalAndServerFileATWM1(pathOriginalFile, pathTransferFile);
+function bAbortTransfer = compareChangeDateOfLocalAndServerFileATWM1(pathOriginalFile, pathTransferFile)
 
 if exist(pathTransferFile, 'file')
     strucLocalFile = dir(pathOriginalFile);

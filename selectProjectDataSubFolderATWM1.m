@@ -1,8 +1,9 @@
-function strProjectDataSubFolder = selectProjectDataSubFolderATWM1(strSubjectDataFolder, strProjectDataType, varagin);
+function strProjectDataSubFolder = selectProjectDataSubFolderATWM1(strSubjectDataFolder, strProjectDataType, varagin)
 
 global iStudy
+global nrOfSessions
 
-hFunction = str2func(sprintf('defineProjectDataSubFolder%s', iStudy));
+hFunction = str2func(sprintf('defineProjectDataSubFolders%s', iStudy));
 structProjectDataSubFolder = feval(hFunction, strSubjectDataFolder);
 
 %%% Detect the fieldnames containing information about the different data
@@ -16,9 +17,9 @@ iDataSubFolderTypes = (find(iDataSubFolderTypes))';
 
 if ~isempty(varagin)
     iSubFolder = varagin;
-    strProjectDataSubFolder = structProjectDataSubFolder.(genvarname(aStrFieldnames{iDataSubFolderTypes})){iSubFolder};
+    strProjectDataSubFolder = structProjectDataSubFolder.(matlab.lang.makeValidName(aStrFieldnames{iDataSubFolderTypes})){iSubFolder};
 else
-    strProjectDataSubFolder = structProjectDataSubFolder.(genvarname(aStrFieldnames{iDataSubFolderTypes}));
+    strProjectDataSubFolder = structProjectDataSubFolder.(matlab.lang.makeValidName(aStrFieldnames{iDataSubFolderTypes}));
 end
 
 

@@ -1,4 +1,4 @@
-function createFilesForCopeATWM1 ();
+function createFilesForCopeATWM1 ()
 %%% © 2015 Robert Bittner
 %%% Written for BrainVoyagerQX 2.8.4
 %%% This function calls BrainVoyagerQX using the COM interface.
@@ -122,6 +122,7 @@ for iRun = 1:parametersParadigm.nRuns
         end
         
         strFmrFile = sprintf('%s_%s_%s_%s_%s_run%i.fmr', iSubject, iStudy, parametersParadigm.strParadigmType, parametersEpiDistortionCorrection.strMethod, strPhaseEncodingDirection, iRun);
+        %strFmrFile = sprintf('%s_%s_%s_run%i.fmr'      , iSubject, iStudy, parametersParadigm.strParadigmType, iRun);
         pathFmrFile = strcat(projectDataPath, strFmrFile);
 
         fmr = bvqx.CreateProjectMosaicFMR(parametersFunctionalMriSequence.fileType, pathFirstSourceFile, parametersFunctionalMriSequence.nVolumes, parametersFunctionalMriSequence.nVolumesToSkip, parametersFunctionalMriSequence.createAmr, parametersFunctionalMriSequence.nSlices, parametersFunctionalMriSequence.prefixStc, parametersFunctionalMriSequence.swapBytes, parametersFunctionalMriSequence.mosaicResX, parametersFunctionalMriSequence.mosaicResY, parametersFunctionalMriSequence.nBytes, projectDataPath, parametersFunctionalMriSequence.nVolumesInImage, parametersFunctionalMriSequence.resX, parametersFunctionalMriSequence.resY);

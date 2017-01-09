@@ -497,7 +497,6 @@ while ~feof(fid)
         text = textscan(strLine, '%s %f %s %f %f %*[^\n]');
         trialData.response(cTrials) = text{4};
         trialData.responseOnset(cTrials) = text{5};
-        
     end
     
  

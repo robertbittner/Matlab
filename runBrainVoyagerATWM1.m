@@ -1,8 +1,7 @@
-function [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1();
-%function [bvqx, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1();
+function [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1()
 %%% © 2015 Robert Bittner
 %%% Written for BrainVoyagerQX 2.8.4
-%%% This function calls BrainVoyagerQX using the COM interface and checks 
+%%% This function calls BrainVoyagerQX using the COM interface and checks
 %%% whether the currently installed version is compatible with the study
 %%% scripts
 
@@ -30,14 +29,13 @@ else
 end
 strBrainVoyagerVersion = sprintf('Version %i.%i - Build %i - %s', bvqx.VersionMajor, bvqx.VersionMinor, bvqx.BuildNumber, strBit);
 
-if bIncompatibleBrainVoyagerVersion == true
+if bIncompatibleBrainVoyagerVersion
     parametersComProcess = [];
     bvqx.Exit;
-    strMessage = sprintf('\nERROR:\nCurrently used version of BrainVoyager (%s)\nis incompatible with scripts of study %s!\nAborting function.\n', strBrainVoyagerVersion, iStudy);
-    disp(strMessage);
+    fprintf('\nERROR:\nCurrently used version of BrainVoyager (%s)\nis incompatible with scripts of study %s!\nAborting function.\n\n', strBrainVoyagerVersion, iStudy);
     return
 else
-    parametersComProcess = detectBrainVoyagerComProcess();
+    parametersComProcess = detectBrainVoyagerComProcessATWM1();
 end
 
 

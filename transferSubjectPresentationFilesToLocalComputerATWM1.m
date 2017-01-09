@@ -18,8 +18,8 @@ pathServerPresentationFileFolder = strrep(pathLocalPresentationFileFolder, folde
 parametersFileTransfer.strExtZip = '.zip';
 
 %%% Check, whether all relevant local and server folders can be accessed
-hFunction = str2func(sprintf('checkFolderAccess%s', iStudy));
-bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
+hFunction = str2func(sprintf('checkLocalComputerFolderAccess%s', iStudy));
+    bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
 if bAllFoldersCanBeAccessed == false
     error('Folders for study %s cannot be accessed.', iStudy);
 end

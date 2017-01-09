@@ -1,4 +1,5 @@
-function matlabCommandWindowProcessId = initiateDelayedTerminationOfBrainVoyagerComProcessesATWM1(parametersComProcess, processDuration);
+function matlabCommandWindowProcessId = initiateDelayedTerminationOfBrainVoyagerComProcessesATWM1(parametersComProcess, processDuration)
+
 global iStudy
 
 %%% Transform iStudy into ASCII code and prepare its transfer into another
@@ -31,7 +32,7 @@ strNewProcessId = setxor(parametersMatlabInstancesPre.pid, parametersMatlabInsta
 matlabCommandWindowProcessId.strNewProcessId = strNewProcessId;
 matlabCommandWindowProcessId.nNewMatlabCommandWindowsProcesses = numel(matlabCommandWindowProcessId.strNewProcessId);
 
-%%% Confirm that 
+%%% Confirm that
 counterMatlabCommandWindows = 0;
 for cp = 1:parametersMatlabInstances.nRunningProgamInstances
     if strcmp(parametersMatlab.strMatlabCommandWindow, parametersMatlabInstances.windowTitle{cp})
@@ -39,5 +40,6 @@ for cp = 1:parametersMatlabInstances.nRunningProgamInstances
         matlabCommandWindowProcessId.aStrAllProcessIds{counterMatlabCommandWindows} = parametersMatlabInstances.pid{cp};
     end
 end
+
 
 end

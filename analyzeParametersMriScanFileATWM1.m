@@ -1,14 +1,12 @@
-function parametersMriSession = analyzeParametersMriScanFileATWM1();
+function parametersMriSession = analyzeParametersMriScanFileATWM1()
 
 global iStudy
-global iSubject
-global iGroup
-global iGroupLong
 global iSession
+global strSubject
 
 parametersStudy = eval(['parametersStudy', iStudy]);
 
-parametersStructuralMriSequence         = eval(['parametersStructuralMriSequence', iStudy]);
+parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
 parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
 parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence_WM_', iStudy]);
 parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
@@ -18,9 +16,9 @@ hFunction = str2func(sprintf('readParametersMriSessionFile%s', iStudy));
 parametersMriSession = feval(hFunction);
 
 hFunction = str2func(sprintf('readFileIndicesForFunctionalRuns%s', iStudy));
-[parametersMriSession, fileIndex] = feval(hFunction, parametersStudy, parametersMriSession);
+[fileIndex] = feval(hFunction, parametersStudy, parametersMriSession);
 
-hFunction = str2func(sprintf('determineNumberOfRuns%s', iStudy));
+hFunction = str2func(sprintf('determineNumberOfRunsInMriSession%s', iStudy));
 [parametersMriSession, fileIndex] = feval(hFunction, parametersMriSession, fileIndex);
 if parametersMriSession.bNoCriticalErrorsDetected == false
     return
@@ -30,37 +28,45 @@ hFunction = str2func(sprintf('determineFeasibilityOfEpiDistortionCorrection%s', 
 parametersMriSession = feval(hFunction, parametersMriSession, fileIndex);
 
 hFunction = str2func(sprintf('compareNumberOfMeasurementsInEachRun%s', iStudy));
-parametersMriSession = feval(hFunction, parametersMriSession, fileIndex, parametersStudy, parametersStructuralMriSequence, parametersStructuralMriSequenceLowRes, parametersFunctionalMriSequence_WM, parametersFunctionalMriSequence_LOC, parametersFunctionalMriSequence_COPE);
+parametersMriSession = feval(hFunction, parametersMriSession, fileIndex, parametersStudy, parametersStructuralMriSequenceHighRes, parametersStructuralMriSequenceLowRes, parametersFunctionalMriSequence_WM, parametersFunctionalMriSequence_LOC, parametersFunctionalMriSequence_COPE);
 
 hFunction = str2func(sprintf('compareNumberOfAcquiredRuns%s', iStudy));
 parametersMriSession = feval(hFunction, parametersMriSession);
+
+if parametersMriSession.nInvalidRuns ~= 0
+    parametersMriSession.bDeviatingDicomFileNamesPossible = true;
+else
+    parametersMriSession.bDeviatingDicomFileNamesPossible = false;
+end
 
 hFunction = str2func(sprintf('finalEvaluationOfFile%s', iStudy));
 parametersMriSession = feval(hFunction, parametersMriSession);
 
 parametersMriSession = orderfields(parametersMriSession);
 
+
 end
 
 
-function [parametersMriSession, fileIndex] = readFileIndicesForFunctionalRunsATWM1(parametersStudy, parametersMriSession);
+function [fileIndex] = readFileIndicesForFunctionalRunsATWM1(parametersStudy, parametersMriSession)
 
 strFileIndexFunctionalRuns = 'fileIndexFmr';
-fileIndex.WM    = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strWorkingMemoryTask))))';
-fileIndex.LOC   = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strLocalizer))))';
-fileIndex.COPE  = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strMethodEpiDistortionCorrection))))';
+fileIndex.WM    = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strWorkingMemoryTask))))';
+fileIndex.LOC   = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strLocalizer))))';
+fileIndex.COPE  = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strMethodEpiDistortionCorrection))))';
+
 
 end
 
 
-function [parametersMriSession, fileIndex] = determineNumberOfRunsATWM1(parametersMriSession, fileIndex);
+function [parametersMriSession, fileIndex] = determineNumberOfRunsInMriSessionATWM1(parametersMriSession, fileIndex)
 
 parametersMriSession.nFunctionalRuns_WM     = numel(fileIndex.WM);
 parametersMriSession.nFunctionalRuns_LOC    = numel(fileIndex.LOC);
 parametersMriSession.nFunctionalRuns_COPE   = numel(fileIndex.COPE);
 
 fileIndex.functionalRuns = [fileIndex.WM, fileIndex.LOC, fileIndex.COPE];
-fileIndex.structuralRuns = parametersMriSession.fileIndexVmr;
+fileIndex.structuralRuns = [parametersMriSession.fileIndexVmrHighRes, parametersMriSession.fileIndexVmrLowRes];
 fileIndex.anatomicalLocalizers = parametersMriSession.fileIndexAnatomicalLocalizer;
 fileIndex.invalidRuns = parametersMriSession.fileIndexInvalidRuns;
 
@@ -82,13 +88,30 @@ else
     parametersMriSession.bNoCriticalErrorsDetected = true;
 end
 
+parametersMriSession.nDicomFiles = sum(parametersMriSession.nMeasurementsInRun);
+
+
 end
 
 
-function parametersMriSession = determineFeasibilityOfEpiDistortionCorrectionATWM1(parametersMriSession, fileIndex);
+function parametersMriSession = determineFeasibilityOfEpiDistortionCorrectionATWM1(parametersMriSession, fileIndex)
 %%% Check, whether each WM or LOC run is preceded by a COPE run
 combFileIndex = [fileIndex.WM, fileIndex.LOC];
 precFileIndex = combFileIndex - 1;
+
+%%% Case, when run preceding WM or LOC run is invalid
+if ~isempty(parametersMriSession.fileIndexInvalidRuns)
+    indexInvalidRun = find(ismember(precFileIndex, parametersMriSession.fileIndexInvalidRuns));
+    for cr = 1:numel(indexInvalidRun)
+        indexRuns = 1:parametersMriSession.fileIndexFmr_COPE(indexInvalidRun(cr));
+        indexPreviousValidRun = setdiff(indexRuns, parametersMriSession.fileIndexInvalidRuns);
+        indexPreviousValidRun = indexPreviousValidRun(end);
+        if ismember(indexPreviousValidRun, parametersMriSession.fileIndexFmr_COPE)
+            precFileIndex(indexInvalidRun(cr)) = indexPreviousValidRun;
+        end
+    end
+end
+
 parametersMriSession.bMatchingEpiDistortionCorrectionScanExists = ismember(precFileIndex, fileIndex.COPE);
 
 if parametersMriSession.bMatchingEpiDistortionCorrectionScanExists == true
@@ -97,15 +120,15 @@ else
     parametersMriSession.bEpiDistortionCorrectionPossible = false;
     iMissingEpiDistortionCorrectionScan = find(~parametersMriSession.bMatchingEpiDistortionCorrectionScanExists);
     for cedcs = 1:numel(iMissingEpiDistortionCorrectionScan)
-        strMessage = sprintf('CHANGE MESSAGE \nError!\nPreceding EPI distortion correction scan missing for run %i!', combFileIndex(iMissingEpiDistortionCorrectionScan));
-        disp(strMessage);
+        fprintf('CHANGE MESSAGE \nError!\nPreceding EPI distortion correction scan missing for run %i!', combFileIndex(iMissingEpiDistortionCorrectionScan));
     end
 end
 
+
 end
 
 
-function parametersMriSession = compareNumberOfMeasurementsInEachRunATWM1(parametersMriSession, fileIndex, parametersStudy, parametersStructuralMriSequence, parametersStructuralMriSequenceLowRes, parametersFunctionalMriSequence_WM, parametersFunctionalMriSequence_LOC, parametersFunctionalMriSequence_COPE);
+function parametersMriSession = compareNumberOfMeasurementsInEachRunATWM1(parametersMriSession, fileIndex, parametersStudy, parametersStructuralMriSequenceHighRes, parametersStructuralMriSequenceLowRes, parametersFunctionalMriSequence_WM, parametersFunctionalMriSequence_LOC, parametersFunctionalMriSequence_COPE)
 global iStudy
 
 strNrOfMeasurementsInStructuralRun      = 'nMeasurementsInStructuralRun';
@@ -114,7 +137,7 @@ strNrOfMeasurementsInFunctionalRun_LOC  = 'nMeasurementsInFunctionalRun_LOC';
 strNrOfMeasurementsInFunctionalRun_COPE = 'nMeasurementsInFunctionalRun_COPE';
 
 aStrRunTypes = {
-    fileIndex.structuralRuns    parametersStructuralMriSequence.strSequence         parametersMriSession.nStructuralRuns        strNrOfMeasurementsInStructuralRun          parametersStructuralMriSequence.nSlices         parametersStructuralMriSequenceLowRes.nSlices
+    fileIndex.structuralRuns    parametersStructuralMriSequenceHighRes.strSequence  parametersMriSession.nStructuralRuns        strNrOfMeasurementsInStructuralRun          parametersStructuralMriSequenceHighRes.nSlices  parametersStructuralMriSequenceLowRes.nSlices
     fileIndex.WM                parametersStudy.strWorkingMemoryTask                parametersMriSession.nFunctionalRuns_WM     strNrOfMeasurementsInFunctionalRun_WM       parametersFunctionalMriSequence_WM.nVolumes     []
     fileIndex.LOC               parametersStudy.strLocalizer                        parametersMriSession.nFunctionalRuns_LOC    strNrOfMeasurementsInFunctionalRun_LOC      parametersFunctionalMriSequence_LOC.nVolumes    []
     fileIndex.COPE	            parametersStudy.strMethodEpiDistortionCorrection    parametersMriSession.nFunctionalRuns_COPE   strNrOfMeasurementsInFunctionalRun_COPE     parametersFunctionalMriSequence_COPE.nVolumes   []
@@ -124,10 +147,10 @@ nRunTypes = nRunTypes(1);
 
 for c = 1:nRunTypes
     for cr = 1:aStrRunTypes{c, 3}
-        parametersMriSession.(matlab.lang.makeValidName(strNrOfMeasurementsInStructuralRun))(cr) = parametersMriSession.nMeasurementsInRun(aStrRunTypes{c, 1}(cr));
-        parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(matlab.lang.makeValidName(strNrOfMeasurementsInStructuralRun))(cr), aStrRunTypes{c, 5});
+        parametersMriSession.(genvarname(aStrRunTypes{c, 4}))(cr) = parametersMriSession.nMeasurementsInRun(aStrRunTypes{c, 1}(cr));
+        parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(genvarname(aStrRunTypes{c, 4}))(cr), aStrRunTypes{c, 5});
         hFunction = str2func(sprintf('detectStructuralRun%s', iStudy));
-        parametersMriSession = feval(hFunction, parametersMriSession, parametersStructuralMriSequence, aStrRunTypes, c, cr, strNrOfMeasurementsInStructuralRun);
+        parametersMriSession = feval(hFunction, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrRunTypes, c, cr, strNrOfMeasurementsInStructuralRun);
     end
 end
 hFunction = str2func(sprintf('evaluateStructuralRuns%s', iStudy));
@@ -147,18 +170,19 @@ else
     end
 end
 
+
 end
 
 
-function parametersMriSession = detectStructuralRunATWM1(parametersMriSession, parametersStructuralMriSequence, aStrRunTypes, c, cr, strNrOfMeasurementsInStructuralRun);
+function parametersMriSession = detectStructuralRunATWM1(parametersMriSession, parametersStructuralMriSequenceHighRes, aStrRunTypes, c, cr, strNrOfMeasurementsInStructuralRun)
 %%% Search for standard and / or low res anatomical scans
-if strcmp(aStrRunTypes{c, 2}, parametersStructuralMriSequence.strSequence)
+if strcmp(aStrRunTypes{c, 2}, parametersStructuralMriSequenceHighRes.strSequence)
     if cr == 1
         if parametersMriSession.bMatchingNumberOfMeasurements{c, cr} == true
             parametersMriSession.bStructuralMriStandarResAcquired = true;
             parametersMriSession.bStructuralMriLowResAcquired = false;
         else
-            parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(matlab.lang.makeValidName(strNrOfMeasurementsInStructuralRun))(cr), aStrRunTypes{c, 6});
+            parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(genvarname(strNrOfMeasurementsInStructuralRun))(cr), aStrRunTypes{c, 6});
             if parametersMriSession.bMatchingNumberOfMeasurements{c, cr} == true
                 parametersMriSession.bStructuralMriStandarResAcquired = false;
                 parametersMriSession.bStructuralMriLowResAcquired = true;
@@ -171,7 +195,7 @@ if strcmp(aStrRunTypes{c, 2}, parametersStructuralMriSequence.strSequence)
         if parametersMriSession.bMatchingNumberOfMeasurements{c, cr} == true && parametersMriSession.bStructuralMriStandarResAcquired == false
             parametersMriSession.bStructuralMriStandarResAcquired = true;
         else
-            parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(matlab.lang.makeValidName(strNrOfMeasurementsInStructuralRun))(cr), aStrRunTypes{c, 6});
+            parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(genvarname(strNrOfMeasurementsInStructuralRun))(cr), aStrRunTypes{c, 6});
             if parametersMriSession.bMatchingNumberOfMeasurements{c, cr} == true && parametersMriSession.bStructuralMriLowResAcquired == false
                 parametersMriSession.bStructuralMriLowResAcquired = true;
             end
@@ -179,10 +203,11 @@ if strcmp(aStrRunTypes{c, 2}, parametersStructuralMriSequence.strSequence)
     end
 end
 
+
 end
 
 
-function parametersMriSession = evaluateStructuralRunsATWM1(parametersMriSession);
+function parametersMriSession = evaluateStructuralRunsATWM1(parametersMriSession)
 if parametersMriSession.bStructuralMriStandarResAcquired == false && parametersMriSession.bStructuralMriLowResAcquired == true
     strMessage = sprintf('Warning!\nNo standard resolution structural run acquired!');
     disp(strMessage);
@@ -194,9 +219,12 @@ else
     strMessage = sprintf('Error!\nNo valid structural run acquired!');
     disp(strMessage);
 end
+
+
 end
 
-function parametersMriSession = compareNumberOfAcquiredRunsATWM1(parametersMriSession);
+
+function parametersMriSession = compareNumberOfAcquiredRunsATWM1(parametersMriSession)
 global iStudy
 global iSession
 %%% Determine whether all runs for the study have been acquired during this
@@ -217,10 +245,11 @@ else
     disp(strMessage);
 end
 
+
 end
 
 
-function parametersMriSession = finalEvaluationOfFileATWM1(parametersMriSession);
+function parametersMriSession = finalEvaluationOfFileATWM1(parametersMriSession)
 %%% Determine whether any error have been detected
 parametersMriSession.bAnyError = [
                                         ~parametersMriSession.bVerified
@@ -239,5 +268,6 @@ else
     strMessage = sprintf('Data processing cannot proceed!\nPlease re-check the file manually.');
     disp(strMessage);
 end
+
 
 end

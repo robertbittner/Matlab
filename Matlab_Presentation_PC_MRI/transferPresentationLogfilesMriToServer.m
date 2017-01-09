@@ -40,13 +40,11 @@ aSubject = processSubjectArrayATWM1_IMAGING;
 [strGroup, strSubject] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject);
 
 %% Prepare 
-[aStrPathPresentationLogfilesLocal, nLogfiles, nMissingFiles] = createLogfileInformationATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI, strSubject);
-[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
-if bAbort == true
-    return
-end
+[aStrPathPresentationLogfilesLocal, nLogfiles, nMissingFiles] = createLogfileInformationATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI,strSubject);
+[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
 
 copyLogfilesToServerATWM1(aStrPathPresentationLogfilesLocal, aStrPathPresentationLogfilesServer, nLogfiles, bLogfilesExistsOnServer, bOverwriteExistingFiles)
+
 
 %% Remove previously added paths
 rmpath(folderDefinition.studyParametersLocalMriScanner);
@@ -72,7 +70,7 @@ for cco = 1:parametersParadigm_WM_MRI.nConditions
 end
 % Localizer
 nLogfiles = nLogfiles + 1;
-aStrPathPresentationLogfilesLocal{nLogfiles} = sprintf('%s%s-%s_%s_%s.log', folderDefinition.logfilesLocalMriScanner, strSubject, iStudy, parametersStudy.strFullLocalizer, parametersStudy.strMRI);
+aStrPathPresentationLogfilesLocal{nLogfiles} = sprintf('%s%s-%s_%s_%s.log', folderDefinition.logfilesLocalMriScanner, strSubject, iStudy, parametersStudy.strFullLocalizerTask, parametersStudy.strMRI);
 
 nMissingFiles = 0;
 for cf = 1:nLogfiles
@@ -96,7 +94,7 @@ end
 end
 
 
-function [aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
+function [aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
 %% Prepare file copy
 % Determine file path on server
 
@@ -134,12 +132,10 @@ if nExistingLogfilesServer > 0
             strMessage = sprintf('Preserving logfiles on server');
             disp(strMessage);
             bOverwriteExistingFiles = false;
-            bAbort = false;
         case strOption2
             strMessage = sprintf('Overwriting logfiles on server');
             disp(strMessage);
             bOverwriteExistingFiles = true;
-            bAbort = false;
         case strOption3
             strMessage = sprintf('Aborting function');
             disp(strMessage);

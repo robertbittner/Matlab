@@ -1,15 +1,15 @@
-function bMriServerFolderCanBeAccessed = checkMriServerFolderAccessATWM1(folderDefinition);
+function bAllFoldersCanBeAccessed = checkMriServerFolderAccessATWM1(folderDefinition)
 
 global iStudy
 
 [~, parametersDialog] = eval(['defineDialogTextElements', iStudy]);
 
 [aStrFolderDefinitions, aStrLogfileTranferFolderDefinitions] = readFolderDefinitionsATWM1(folderDefinition);
-[bMriServerFolderCanBeAccessed, bMriServerFolderManuallySelected, bMriServerFolderDisplayed] = setIntialValuesForBooleansATWM1();
+[bAllFoldersCanBeAccessed, bMriServerFolderManuallySelected, bMriServerFolderDisplayed] = setIntialValuesForBooleansATWM1();
 
-while bMriServerFolderCanBeAccessed == false
+while bAllFoldersCanBeAccessed == false
     hFunction = str2func(sprintf('checkAccessToFolders%s', iStudy));
-    [aStrInaccessibleNetworkDrives, bSeverFoldersCannotBeAccessed, bMriServerFolderCanBeAccessed] = feval(hFunction, aStrLogfileTranferFolderDefinitions);
+    [aStrInaccessibleNetworkDrives, bSeverFoldersCannotBeAccessed, bAllFoldersCanBeAccessed] = feval(hFunction, aStrLogfileTranferFolderDefinitions);
     if bSeverFoldersCannotBeAccessed == true
         if bMriServerFolderDisplayed == false
             hFunction = str2func(sprintf('displayUnaccessibleFolders%s', iStudy));
@@ -26,8 +26,8 @@ while bMriServerFolderCanBeAccessed == false
         end
         
         hFunction = str2func(sprintf('checkAccessToFolders%s', iStudy));
-        [~, ~, bMriServerFolderCanBeAccessed] = feval(hFunction, aStrFolderDefinitions);
-    elseif bMriServerFolderCanBeAccessed == false && bMriServerFolderManuallySelected == true
+        [~, ~, bAllFoldersCanBeAccessed] = feval(hFunction, aStrFolderDefinitions);
+    elseif bAllFoldersCanBeAccessed == false && bMriServerFolderManuallySelected == true
         strMessage = sprintf('One or more folder(s) cannot be accessed!\nAborting function.');
         disp(strMessage);
         strMessage = sprintf('Please check, whether all specfied folders exist.');
@@ -65,10 +65,10 @@ aStrLogfileTranferFolderDefinitions = {
 end
 
 
-function [bMriServerFolderCanBeAccessed, bMriServerFolderManuallySelected, bMriServerFolderDisplayed] = setIntialValuesForBooleansATWM1();
-bMriServerFolderCanBeAccessed       = false;
+function [bAllFoldersCanBeAccessed, bMriServerFolderManuallySelected, bMriServerFolderDisplayed] = setIntialValuesForBooleansATWM1();
+bAllFoldersCanBeAccessed            = false;
 bMriServerFolderManuallySelected    = false;
-bMriServerFolderDisplayed    = false;
+bMriServerFolderDisplayed           = false;
 
 end
 
@@ -127,11 +127,11 @@ end
 end
 
 
-function [aStrInaccessibleNetworkDrives, bSeverFoldersCannotBeAccessed, bMriServerFolderCanBeAccessed] = checkAccessToFoldersATWM1(aStrLogfileTranferFolderDefinitions)
+function [aStrInaccessibleNetworkDrives, bSeverFoldersCannotBeAccessed, bAllFoldersCanBeAccessed] = checkAccessToFoldersATWM1(aStrLogfileTranferFolderDefinitions)
 
 bSeverFoldersCannotBeAccessed = false;
 bSingleFolderCannotBeAccessed = false;
-bMriServerFolderCanBeAccessed = false;
+bAllFoldersCanBeAccessed = false;
 aStrInaccessibleNetworkDrives = {};
 for cf = 1:numel(aStrLogfileTranferFolderDefinitions)
     if ~exist(aStrLogfileTranferFolderDefinitions{cf}, 'dir')
@@ -143,7 +143,7 @@ for cf = 1:numel(aStrLogfileTranferFolderDefinitions)
     end
 end
 if bSingleFolderCannotBeAccessed == false
-    bMriServerFolderCanBeAccessed = true;
+    bAllFoldersCanBeAccessed = true;
 end
 
 

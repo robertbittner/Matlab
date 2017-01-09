@@ -1,4 +1,4 @@
-function backupSubjectDataATWM1();
+function backupSubjectDataATWM1()
 
 clear all
 clc
@@ -10,8 +10,11 @@ iStudy = 'ATWM1';
 folderDefinition        = eval(['folderDefinition', iStudy]);
 parametersStudy         = eval(['parametersStudy', iStudy]);
 parametersGroups        = eval(['parametersGroups', iStudy]);
+parametersFileBackup    = eval(['parametersFileBackup', iStudy]);
+
 %parametersSubjectCode   = eval(['parametersSubjectCode', iStudy]);
 %parametersBarcode       = eval(['parametersBarcode', iStudy]);
+
 
 %{
 parametersBarcode.extPdf = '.pdf';
@@ -26,7 +29,7 @@ parametersSubjectCode.lengthStudyCodeFileName = length(parametersSubjectCode.str
 %}
 
 %%% Check, whether all relevant local and server folders can be accessed
-hFunction = str2func(sprintf('checkFolderAccess%s', iStudy));
+hFunction = str2func(sprintf('checkLocalComputerFolderAccess%s', iStudy));
 bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
 if bAllFoldersCanBeAccessed == false
     error('Folders for study %s cannot be accessed.', iStudy);
@@ -51,7 +54,7 @@ checkFileAndSubjectIdConsistencyATWM1(aStrAllSubjects, aStrSubjectBarcode, aStrS
 [strSubjectArrayFile, strBackupSubjectArrayFile] = prepareSubjectArrayFileForBackupATWM1(folderDefinition, parametersStudy, nrOfSubjects);
 [strAdditionalSubjectInformationFile, strBackupAdditionalSubjectInformationFile] = prepareAdditionalSubjectInformationFileForBackupATWM1(folderDefinition, parametersStudy, nrOfSubjects);
 
-[aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, bAbortBackup] = prepareFilesForBackupATWM1(folderDefinition, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strBackupSubjectArrayFile, strAdditionalSubjectInformationFile, strBackupAdditionalSubjectInformationFile, nrOfSubjects);
+[aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, bAbortBackup] = prepareFilesForBackupATWM1(folderDefinition, parametersFileBackup, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strBackupSubjectArrayFile, strAdditionalSubjectInformationFile, strBackupAdditionalSubjectInformationFile, nrOfSubjects);
 if bAbortBackup == true
     return
 end
@@ -63,7 +66,7 @@ createServerBackupOfSubjectInformationFilesATWM1(aPathOriginalBarcodeFile, aPath
 end
 
 
-function [strSubjectArrayFile, strBackupSubjectArrayFile] = prepareSubjectArrayFileForBackupATWM1(folderDefinition, parametersStudy, nrOfSubjects);
+function [strSubjectArrayFile, strBackupSubjectArrayFile] = prepareSubjectArrayFileForBackupATWM1(folderDefinition, parametersStudy, nrOfSubjects)
 global iStudy
 % Check, whether subject array exists
 strSubjectArrayFile = sprintf('aSubject%s_%s.m', iStudy, parametersStudy.strImaging);
@@ -94,96 +97,8 @@ strBackupAdditionalSubjectInformationFile = sprintf('aAdditionalSubjectInformati
 
 end
 
-%{
-function [aStrBarcodeFile, aStrSubjectBarcode, nrOfBarcodeFiles] = readBarcodeFilesNamesATWM1(folderDefinition, parametersBarcode);
 
-global iStudy
-
-%%% Read files names of barcode files
-strucBarcodeFiles = dir(folderDefinition.barcodes);
-strucBarcodeFiles = strucBarcodeFiles(3:end);
-nrOfBarcodeFiles = numel(strucBarcodeFiles);
-%%% Ignore files, which do not fullfill the criteria for a barcode file
-for cf = nrOfBarcodeFiles:-1:1
-    if isempty(strfind(strucBarcodeFiles(cf).name, parametersBarcode.extPdf)) || isempty(strfind(strucBarcodeFiles(cf).name, strcat(iStudy, '_', parametersBarcode.strBarcode))) || ~isequal(parametersBarcode.lengthBarcodeFileName, length(strucBarcodeFiles(cf).name))
-        strucBarcodeFiles(cf) = [];
-    end
-end
-nrOfBarcodeFiles = numel(strucBarcodeFiles);
-for cf = 1:nrOfBarcodeFiles
-    aStrBarcodeFile{cf} = strucBarcodeFiles(cf).name;
-    pathBarcodeFile = fullfile(folderDefinition.subjectCodes, aStrBarcodeFile{cf});
-    iSeparator = strfind(aStrBarcodeFile{cf}, '_');
-    iSeparator = iSeparator(1);
-    strSubjectBarcode = aStrBarcodeFile{cf}(1 : iSeparator-1);
-    aStrSubjectBarcode{cf} = strSubjectBarcode;
-end
-aStrSubjectBarcode = sort(aStrSubjectBarcode);
-
-
-end
-%}
-%{
-function [aStrSubjectCodeFile, aStrSubjectCode, nrOfSubjectCodeFiles] = readSubjectCodeFilesNamesATWM1(folderDefinition, parametersSubjectCode);
-
-global iStudy
-
-strucSubjectCodeFiles = dir(folderDefinition.subjectCodes);
-strucSubjectCodeFiles = strucSubjectCodeFiles(3:end);
-nrOfSubjectCodeFiles = numel(strucSubjectCodeFiles);
-%%% Ignore files, which do not fullfill the criteria for a subject code
-%%% file
-for cf = nrOfSubjectCodeFiles:-1:1
-    if isempty(strfind(strucSubjectCodeFiles(cf).name, parametersSubjectCode.extTxt)) || isempty(strfind(strucSubjectCodeFiles(cf).name, strcat(iStudy, '_', parametersSubjectCode.strSubjectCode))) || ~isequal(parametersSubjectCode.lengthStudyCodeFileName, length(strucSubjectCodeFiles(cf).name))
-        strucSubjectCodeFiles(cf) = [];
-    end
-end
-nrOfSubjectCodeFiles = numel(strucSubjectCodeFiles);
-for cf = 1:nrOfSubjectCodeFiles
-    aStrSubjectCodeFile{cf} = strucSubjectCodeFiles(cf).name;
-    pathSubjectCodeFile = fullfile(folderDefinition.subjectCodes, aStrSubjectCodeFile{cf});
-    fid = fopen(pathSubjectCodeFile, 'rt');
-    while ~feof(fid)
-        strLine = fgetl(fid);
-        if strfind(strLine, parametersSubjectCode.strSubjectCodeText)
-            strSubjectSubjectCode = strrep(strLine, parametersSubjectCode.strSubjectCodeText, '');
-            strSubjectSubjectCode = strrep(strSubjectSubjectCode, ':', '');
-            strSubjectSubjectCode = strtrim(strSubjectSubjectCode);
-            aStrSubjectCode{cf} = strSubjectSubjectCode;
-            break
-        end
-    end
-    fclose(fid);
-end
-aStrSubjectCode = sort(aStrSubjectCode);
-
-end
-%}
-%{
-function checkFileAndSubjectIdConsistencyATWM1(aStrAllSubjects, aStrSubjectBarcode, aStrSubjectCode, nrOfSubjects, nrOfBarcodeFiles, nrOfSubjectCodeFiles);
-
-%%% Check, whether the number of files matches the number of enrolled subjects and whether the subject IDs match as well
-bCorrectNrOfFiles   = isequal(nrOfSubjectCodeFiles, nrOfSubjects) && isequal(nrOfBarcodeFiles, nrOfSubjects);
-bMatchingSubjectId  = isequal(aStrSubjectCode, aStrSubjectBarcode) && isequal(aStrAllSubjects, aStrSubjectBarcode) && isequal(aStrAllSubjects, aStrSubjectCode);
-
-if bCorrectNrOfFiles == false
-    strMessage = sprintf('Number of subject code files: %i.', nrOfSubjectCodeFiles);
-    disp(strMessage);
-    strMessage = sprintf('Number of subjects: %i.', nrOfSubjects);
-    disp(strMessage);
-    strMessage = sprintf('Number of barcode files: %i.', nrOfBarcodeFiles);
-    disp(strMessage);
-    strMessage = sprintf('Number of files does not match the expected number!\nAborting function.');
-    error(strMessage);
-elseif bMatchingSubjectId == false
-    strMessage = sprintf('Subject IDs do not match!\nAborting function.');
-    error(strMessage);
-end
-
-end
-%}
-
-function [aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, bAbortBackup] = prepareFilesForBackupATWM1(folderDefinition, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strBackupSubjectArrayFile, strAdditionalSubjectInformationFile, strBackupAdditionalSubjectInformationFile, nrOfSubjects);
+function [aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, bAbortBackup] = prepareFilesForBackupATWM1(folderDefinition, parametersFileBackup, aStrBarcodeFile, aStrSubjectCodeFile, strSubjectArrayFile, strBackupSubjectArrayFile, strAdditionalSubjectInformationFile, strBackupAdditionalSubjectInformationFile, nrOfSubjects)
 %%% Compare orginal files and backup files
 bAbortBackup = false;
 for cs = 1:nrOfSubjects
@@ -191,7 +106,7 @@ for cs = 1:nrOfSubjects
     strOriginalFile = aStrBarcodeFile{cs};
     pathOriginalFile = fullfile(folderDefinition.barcodes, strOriginalFile);
     pathBackupFile = fullfile(folderDefinition.strBackupFolderBarcodes, strOriginalFile);
-    bAbortBackup = compareOriginalAndBackupFileATWM1(bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
+    bAbortBackup = compareOriginalAndBackupFileATWM1(parametersFileBackup, bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
     aPathOriginalBarcodeFile{cs} = pathOriginalFile;
     aPathBackupBarcodeFile{cs} = pathBackupFile;
     
@@ -199,7 +114,7 @@ for cs = 1:nrOfSubjects
     strOriginalFile = aStrSubjectCodeFile{cs};
     pathOriginalFile = fullfile(folderDefinition.subjectCodes, strOriginalFile);
     pathBackupFile = fullfile(folderDefinition.strBackupFolderSubjectCodes, strOriginalFile);
-    bAbortBackup = compareOriginalAndBackupFileATWM1(bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
+    bAbortBackup = compareOriginalAndBackupFileATWM1(parametersFileBackup, bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
     aPathOriginalSubjectCodeFile{cs} = pathOriginalFile;
     aPathBackupSubjectCodeFile{cs} = pathBackupFile;
 end
@@ -207,7 +122,7 @@ end
 strOriginalFile = strSubjectArrayFile;
 pathOriginalFile = fullfile(folderDefinition.studyParameters, strOriginalFile);
 pathBackupFile = fullfile(folderDefinition.strBackupFolderSubjectArray, strBackupSubjectArrayFile);
-bAbortBackup = compareOriginalAndBackupFileATWM1(bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
+bAbortBackup = compareOriginalAndBackupFileATWM1(parametersFileBackup, bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
 aPathOriginalSubjectArrayFile = pathOriginalFile;
 aPathBackupSubjectArrayFile = pathBackupFile;
 
@@ -215,7 +130,7 @@ aPathBackupSubjectArrayFile = pathBackupFile;
 strOriginalFile = strAdditionalSubjectInformationFile;
 pathOriginalFile = fullfile(folderDefinition.studyParameters, strOriginalFile);
 pathBackupFile = fullfile(folderDefinition.strBackupFolderAdditionalSubjectInformation, strBackupAdditionalSubjectInformationFile);
-bAbortBackup = compareOriginalAndBackupFileATWM1(bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
+bAbortBackup = compareOriginalAndBackupFileATWM1(parametersFileBackup, bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
 aPathOriginalAdditionalSubjectInformationFile = pathOriginalFile;
 aPathBackupAdditionalSubjectInformationFile = pathBackupFile;
 
@@ -228,12 +143,15 @@ end
 end
 
 
-function bAbortBackup = compareOriginalAndBackupFileATWM1(bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile);
+function bAbortBackup = compareOriginalAndBackupFileATWM1(parametersFileBackup, bAbortBackup, strOriginalFile, pathOriginalFile, pathBackupFile)
 
 if exist(pathBackupFile, 'file')
     strucOriginalFile = dir(pathOriginalFile);
     strucBackupFile = dir(pathBackupFile);
+    %%% Select valid fields for file comparison by excluding invalid fields
     aStrFields = fieldnames(strucBackupFile);
+    aStrFields = aStrFields(ismember(aStrFields, parametersFileBackup.aStrValidFieldsForFileComparison));
+    
     nrOfFields = numel(aStrFields);
     for cfield = 1:nrOfFields
         bFieldsMatch(cfield) = isequal(strucOriginalFile.(genvarname(aStrFields{cfield})), strucBackupFile.(genvarname(aStrFields{cfield})));
@@ -264,7 +182,7 @@ end
 end
 
 
-function bFieldsMatch = compareSubjectArrayOriginalAndBackupFileATWM1(aStrFields, pathBackupFile, bFieldsMatch, cfield);
+function bFieldsMatch = compareSubjectArrayOriginalAndBackupFileATWM1(aStrFields, pathBackupFile, bFieldsMatch, cfield)
 
 % Prepare for special case of differing names for subject array file
 indNameField = strfind(aStrFields, 'name');
@@ -281,7 +199,7 @@ end
 end
 
 
-function bFieldsMatch = compareAdditionalSubjectInformationOriginalAndBackupFileATWM1(aStrFields, pathBackupFile, bFieldsMatch, cfield);
+function bFieldsMatch = compareAdditionalSubjectInformationOriginalAndBackupFileATWM1(aStrFields, pathBackupFile, bFieldsMatch, cfield)
 
 % Prepare for special case of differing names for subject array file
 indNameField = strfind(aStrFields, 'name');
@@ -298,7 +216,7 @@ end
 end
 
 
-function createLocalBackupOfSubjectInformationFilesATWM1(aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, nrOfSubjects);
+function createLocalBackupOfSubjectInformationFilesATWM1(aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, nrOfSubjects)
 bCreatedFileBackup = false;
 %%% Backup barcode files
 for cs = 1:nrOfSubjects
@@ -346,7 +264,7 @@ end
 
 
 
-function createServerBackupOfSubjectInformationFilesATWM1(aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, nrOfSubjects, folderDefinition);
+function createServerBackupOfSubjectInformationFilesATWM1(aPathOriginalBarcodeFile, aPathBackupBarcodeFile, aPathOriginalSubjectCodeFile, aPathBackupSubjectCodeFile, aPathOriginalSubjectArrayFile, aPathBackupSubjectArrayFile, aPathOriginalAdditionalSubjectInformationFile, aPathBackupAdditionalSubjectInformationFile, nrOfSubjects, folderDefinition)
 bCreatedFileBackup = false;
 
 %%% Define server backup paths

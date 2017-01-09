@@ -2,7 +2,7 @@ function strParametersMriSessionFile = defineParametersMriSessionFileNameATWM1(s
 
 global iStudy
 
-strParametersMriSessionFile = sprintf('%s_parametersMriSession_%i_%s.m', strSubject, iSession, iStudy);
+strParametersMriSessionFile = sprintf('%s_s%i_parametersMriSession%s.m', strSubject, iSession, iStudy);
 
 
 end

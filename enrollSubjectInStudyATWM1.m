@@ -1,4 +1,4 @@
-function enrollSubjectInStudyATWM1();
+function enrollSubjectInStudyATWM1()
 
 clear all
 clc
@@ -15,7 +15,7 @@ parametersSubjectCode   = eval(['parametersSubjectCode', iStudy]);
 
 
 %%% Check, whether all relevant local and server folders can be accessed
-hFunction = str2func(sprintf('checkFolderAccess%s', iStudy));
+hFunction = str2func(sprintf('checkLocalComputerFolderAccess%s', iStudy));
 bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
 if bAllFoldersCanBeAccessed == false
     error('Folders for study %s cannot be accessed.', iStudy);
@@ -56,18 +56,6 @@ hFunction = str2func(sprintf('generateSubjectCode%s', iStudy));
 hFunction = str2func(sprintf('updateSubjectInformation%s', iStudy));
 [aSubject, subjectInformation] = feval(hFunction, aSubject, subjectInformation, parametersStudy, parametersGroups);
 
-%{
-subjectInformation = subjectInformation
-aAdditionalSubjectInformation = processAdditionalSubjectInformationATWM1_IMAGING
-
-nSubjectsNew = aAdditionalSubjectInformation.nSubjects + 1;
-    aAdditionalSubjectInformation.aStrSubjectNumber{nSubjectsNew}     = subjectInformation.strSubjectNumber
-    aAdditionalSubjectInformation.aStrSubjectCode{nSubjectsNew}       = subjectInformation.strSubjectCode
-    aAdditionalSubjectInformation.aStrEnrollmentDate{nSubjectsNew}    = subjectInformation.strDateOfStudyEnrollment
-%end
-%}
-%return
-
 %%% Print sheet with subject information
 hFunction = str2func(sprintf('createAndPrintSubjectInformationSheet%s', iStudy));
 bPrintSuccessful = feval(hFunction, parametersStudy, textElements, subjectInformation);
@@ -96,13 +84,22 @@ hFunction = str2func(sprintf('confirmEnrollmentOfSubject%s', iStudy));
 feval(hFunction, subjectInformation);
 
 %%% Backup current data and transfer it to the server
-backupSubjectDataATWM1;
-transferCurrentSubjectDataToServerATWM1;
+try
+    backupSubjectDataATWM1;
+catch
+    
+end
+
+try
+    transferCurrentSubjectDataToServerATWM1;
+catch
+    
+end
 
 end
 
 
-function [bFullEnrollment, bRecreateSheet] = selectEnrollmentOptionsATWM1(parametersDialog);
+function [bFullEnrollment, bRecreateSheet] = selectEnrollmentOptionsATWM1(parametersDialog)
 strTitle = 'Enrollment options';
 strPrompt = 'Select options for subject enrollment:';
 
@@ -130,7 +127,7 @@ end
 end
 
 
-function recreateSubjectInformationSheetATWM1(parametersStudy, parametersGroups, parametersDialog, textElements, bFullEnrollment);
+function recreateSubjectInformationSheetATWM1(parametersStudy, parametersGroups, parametersDialog, textElements, bFullEnrollment)
 
 global iStudy
 
@@ -157,7 +154,7 @@ end
 subjectInformation.strSubjectCode = aStrSubjectCodes{iSelectedSubjectCode};
 
 %%% Create dialog to select subject number
-nSubjects = aSubject.(matlab.lang.makeValidName(strcat(iStudy, '_', parametersStudy.strImaging))).nSubjects;
+nSubjects = aSubject.(matlab.lang.makeValidName(strcat(iStudy, '_', parametersStudy.strImaging))).nSubjects.(matlab.lang.makeValidName(subjectInformation.strSelectedShortGroup));
 for cs = 1:nSubjects
     aStrSubjectNumber{cs} = sprintf('%03i', cs);
 end
@@ -182,39 +179,7 @@ end
 end
 
 
-function [textElements, parametersDialog] = defineDialogTextElementsATWM1();
-
-global iStudy
-
-parametersDialog = eval(['parametersDialog', iStudy]);
-
-textElements.strFirstName               = 'First name';
-textElements.strFamilyName              = 'Family name';
-textElements.strDateOfBirth             = 'Date of birth';
-textElements.strGroup                   = 'Group';
-textElements.strDateOfStudyEnrollment   = 'Enrollment date';
-
-textElements.strStudy                   = 'Study';
-textElements.strStudyCode               = 'Study Code';
-textElements.strColorCode               = 'Color Code';
-textElements.strPrincipalInvestigator   = 'Principal Investigator';
-textElements.strSubjectInformation      = 'Subject Information';
-textElements.strSubjectNumber           = 'Subject Number';
-
-
-%%% Strings used for dialogs
-%parametersDialog.strEmpty                   = '          ';
-%parametersDialog.strEmptyDouble             = [parametersDialog.strEmpty, parametersDialog.strEmpty];
-parametersDialog.strFirstName               = sprintf('%s:    ', textElements.strFirstName);
-parametersDialog.strFamilyName              = sprintf('%s: ', textElements.strFamilyName);
-parametersDialog.strDateOfBirth             = sprintf('%s:  ', textElements.strDateOfBirth);
-parametersDialog.strGroup                   = sprintf('%s:           ', textElements.strGroup);
-parametersDialog.strDateOfStudyEnrollment   = sprintf('%s:      ', textElements.strDateOfStudyEnrollment);
-
-end
-
-
-function subjectInformation = enterSubjectInformationATWM1(parametersGroups, parametersDialog, bFullEnrollment);
+function subjectInformation = enterSubjectInformationATWM1(parametersGroups, parametersDialog, bFullEnrollment)
 
 global iStudy
 
@@ -227,7 +192,7 @@ while bSubjectInformationCorrect == false
         %%% Dummy information
         subjectInformation.strFirstName     = 'First-Name';
         subjectInformation.strFamilyName    = 'Family-Name';
-        subjectInformation.strDateOfBirth   = '01.01.1970';
+        subjectInformation.strDateOfBirth   = '01.01.1980';
     end
     
     %%% Determine date of study enrollment (current date)
@@ -260,7 +225,7 @@ end
 end
 
 
-function [strDateOfStudyEnrollment] = determineDateOfStudyEnrollmentATWM1(parametersDialog, bFullEnrollment);
+function [strDateOfStudyEnrollment] = determineDateOfStudyEnrollmentATWM1(parametersDialog, bFullEnrollment)
 %%% Determine date of study enrollment (current date)
 format shortg
 currentTime = clock;
@@ -282,7 +247,7 @@ end
 end
 
 
-function subjectInformation = createSubjectInformationDialogATWM1(parametersDialog, subjectInformation);
+function subjectInformation = createSubjectInformationDialogATWM1(parametersDialog, subjectInformation)
 %%% Create dialog to enter subject name and date of birth
 aStrDefaultAnswers = {subjectInformation.strFirstName, subjectInformation.strFamilyName, subjectInformation.strDateOfBirth};
 
@@ -310,7 +275,7 @@ subjectInformation.strDateOfBirth   = aStrSubjectInformation{3};
 
 end
 
-function subjectInformation = createSubjectGroupDialogATWM1(parametersGroups, subjectInformation, strDateOfStudyEnrollment);
+function subjectInformation = createSubjectGroupDialogATWM1(parametersGroups, subjectInformation, strDateOfStudyEnrollment)
 
 %%% Create dialog to select group
 strTitle = 'Group selection';
@@ -331,7 +296,7 @@ subjectInformation.strSelectedColorGroup    = upper(parametersGroups.aStrColorGr
 end
 
 
-function [subjectInformation, bSubjectInformationCorrect, bUpdateDefaultSubjectInformation] = verifySubjectInformationATWM1(parametersDialog, subjectInformation, bUpdateDefaultSubjectInformation);
+function [subjectInformation, bSubjectInformationCorrect, bUpdateDefaultSubjectInformation] = verifySubjectInformationATWM1(parametersDialog, subjectInformation, bUpdateDefaultSubjectInformation)
 
 %%% Display subject information and subject code for final check
 strTitle = 'Verify subject information';
@@ -368,7 +333,7 @@ end
 end
 
 
-function [aSubject, subjectInformation] = updateSubjectInformationATWM1(aSubject, subjectInformation, parametersStudy, parametersGroups);
+function [aSubject, subjectInformation] = updateSubjectInformationATWM1(aSubject, subjectInformation, parametersStudy, parametersGroups)
 
 global iStudy
 
@@ -387,7 +352,7 @@ subjectInformation.strSubjectNumber = sprintf('%03i', aSubject.nCurrentSubjects)
 end
 
 
-function [success, pathBackupFile] = backupArraySubjectFileATWM1(folderDefinition, parametersStudy, aSubject);
+function [success, pathBackupFile] = backupArraySubjectFileATWM1(folderDefinition, parametersStudy, aSubject)
 
 global iStudy
 
@@ -416,7 +381,7 @@ success = copyfile(pathSubjectArrayFile, pathBackupFile);
 
 end
 
-function [pathSubjectCodeOutputFile] = createOutputFileWithNewSubjectCodeATWM1(folderDefinition, parametersSubjectCode, subjectInformation, textElements);
+function [pathSubjectCodeOutputFile] = createOutputFileWithNewSubjectCodeATWM1(folderDefinition, parametersSubjectCode, subjectInformation, textElements)
 
 global iStudy
 
@@ -448,7 +413,7 @@ end
 end
 
 
-function bPrintSuccessful = createAndPrintSubjectInformationSheetATWM1(parametersStudy, textElements, subjectInformation);
+function bPrintSuccessful = createAndPrintSubjectInformationSheetATWM1(parametersStudy, textElements, subjectInformation)
 
 global iStudy
 
@@ -489,7 +454,7 @@ end
 
 end
 
-function textSubjectInformation = generateTextSubjectInformationATWM1(textElements);
+function textSubjectInformation = generateTextSubjectInformationATWM1(textElements)
 
 textSubjectInformation.strEnrollmentDate    = sprintf('%s:', textElements.strDateOfStudyEnrollment);
 textSubjectInformation.strSubjectNumber     = sprintf('%s:', textElements.strSubjectNumber);
@@ -562,7 +527,7 @@ set(gcf, 'PaperPosition', [0 0 parametersSubjectInformationFigureElements.paperS
 
 end
 
-function addTextBoxesToSubjectInformationFigureATWM1(parametersSubjectInformationFigureElements);
+function addTextBoxesToSubjectInformationFigureATWM1(parametersSubjectInformationFigureElements)
 
 %%% Textbox containing the figure title
 textBoxTitle            = annotation('textbox');
@@ -614,7 +579,7 @@ textBoxSubjectInformation.FontName          = parametersSubjectInformationFigure
 end
 
 
-function addLogoToSubjectInformationFigureATWM1(parametersInstitutionLogo, parametersSubjectInformationFigureElements);
+function addLogoToSubjectInformationFigureATWM1(parametersInstitutionLogo, parametersSubjectInformationFigureElements)
 
 %%% Add hospital logo
 image = imread(parametersInstitutionLogo.pathLogo);
@@ -756,12 +721,12 @@ function confirmEnrollmentOfSubjectATWM1(subjectInformation)
 global iStudy
 
 %%% Confirm successful enrollment of subject
-strMessage = sprintf('\nSubject %s successfully enrolled in study %s!', subjectInformation.strSubjectCode, iStudy);
+strMessage = sprintf('\nSubject %s successfully enrolled in study %s!\n', subjectInformation.strSubjectCode, iStudy);
+disp(strMessage);
 strDialogTitle = 'Enrollment completed';
 h = msgbox(strMessage, strDialogTitle);
 pause(10)
 delete(h);
-disp(strMessage);
 
 
 end
