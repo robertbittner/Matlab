@@ -9,6 +9,10 @@ global strGroup
 global strGroupLong
 global iSession
 
+global bTestConfiguration
+
+bTestConfiguration = true;
+
 iStudy = 'ATWM1';
 
 folderDefinition            = eval(['folderDefinition', iStudy]);
@@ -17,6 +21,7 @@ parametersDialog            = eval(['parametersDialog', iStudy]);
 parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
 parametersFileTransfer      = eval(['parametersFileTransfer', iStudy]);
 parametersGroups            = eval(['parametersGroups', iStudy]);
+parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
 
 parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
 parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
@@ -24,190 +29,65 @@ parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence
 parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
 parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
 
-
-strStudyType = sprintf('%s_%s', iStudy, parametersStudy.strImaging);
-
-%%% REINSTATE
-%%{
-%%% Check server access
-bAllFoldersCanBeAccessed = checkLocalComputerFolderAccessATWM1(folderDefinition);
-if bAllFoldersCanBeAccessed == false
-    return
-end
-%}
-
-%%% Load additional folder definitions for MRI file transfer
-hFunction = str2func(sprintf('folderDefinitionMriFileTransfer%s', iStudy));
-folderDefinition = feval(hFunction, folderDefinition);
-%return
-
-% 'D:\Daten\ATWM1\Archive_DICOM_Files'
-
-
-%{
-%%% Put this into the function 'defineParametersForFileTransfer'
-hFunction = str2func(sprintf('checkFolderAccess%s', iStudy));
-bAllFoldersCanBeAccessed = feval(hFunction, folderDefinition);
-if bAllFoldersCanBeAccessed == false
-    return
-end
-%}
-
-%%{
-%%% REINSTATE
-aSubject = processSubjectArrayATWM1_IMAGING;
-strDialogSelectionModeGroup = 'multiple';
-[strGroup, strSubject, bAbort] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject, strDialogSelectionModeGroup);
-%%% REINSTATE
-%}
-%{
-iSession = 1;
-strSubject = 'GK41XTU'
-strGroup = 'CONT'
-strGroupLong  = 'Controls';
-strPathOriginalDicomFiles = 'D:\Daten\ATWM1\Archive_DICOM_Files\GK41XTU\'
-folderDefinition.strFolderRootTransferFromScanner = 'D:\Daten\ATWM1\Archive_DICOM_Files\';
-%}
-folderDefinition.strFolderRootTransferFromScanner = 'W:\02_DICOM_Files\'
-
-strFolderRootTransferFromScanner = folderDefinition.strFolderRootTransferFromScanner;
-
-
-
-%%% Search for folder containing DICOM files of selected subject
-strucFolderContentTransferFromScanner = dir(strFolderRootTransferFromScanner);
-strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
-nrOfSubjFolders = 0;
-for ccont = 1:numel(strucFolderContentTransferFromScanner)
-    strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
-    strPathSubfolder = strcat(strFolderRootTransferFromScanner, strFolderContent);
-    if exist(strPathSubfolder, 'dir')
-        if ~isempty(find(strfind(strPathSubfolder, strSubject), 1))
-            nrOfSubjFolders = nrOfSubjFolders + 1;
-            aStrPathOriginalDicomFiles{nrOfSubjFolders} = strPathSubfolder;
-        end
-    end
-end
-
-
-if nrOfSubjFolders == 1
-    strPathOriginalDicomFiles = aStrPathOriginalDicomFiles{1};
-else    
-    % Special case of more than 1 folder for selected subject
-    bInvalidFolderSelected = true;
-    while bInvalidFolderSelected
-        strCurrentMatlabFolder = pwd;
-        cd(strFolderRootTransferFromScanner);
-        startFolder = strcat(strFolderRootTransferFromScanner);
-        strTitle = sprintf('Please select folder for subject %s.', strSubject);
-        strPathOriginalDicomFiles = uigetdir(startFolder, strTitle);
-        if ~isempty(find(strfind(strPathOriginalDicomFiles, strSubject), 1))
-            bInvalidFolderSelected = false;
-            bAbort = false;
-        else
-            strTitle = 'Select DICOM file folder';
-            strMessage = sprintf('No valid DICOM file folder selected for subject %s!\nPlease retry.', strSubject);
-            strButton1 = sprintf('%sRetry%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-            strButton2 = sprintf('%sCancel%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-            default = strButton1;
-            choice = questdlg(strMessage, strTitle, strButton1, strButton2, default);
-            if ~isempty(choice)
-                switch choice
-                    case strButton1
-                        bAbort = false;
-                    case strButton2
-                        bAbort = true;
-                        strMessage = sprintf('Function aborted by user.');
-                        disp(strMessage);
-                end
-            else
-                bAbort = true;
-                strMessage = sprintf('Function aborted by user.');
-                disp(strMessage);
-            end
-            if bAbort == true
-                bInvalidFolderSelected = false;
-                strPathOriginalDicomFiles = '';
-            end
-        end
-    end
-    cd(strCurrentMatlabFolder);
-end
+strStudyType = defineStudyTypeImaging(parametersStudy);
 
 %%% Select file transfer options
 hFunction = str2func(sprintf('selectFileTransferOptions%s', iStudy));
-[folderDefinition, parametersFileTransfer, bAbort] = feval(hFunction, folderDefinition, parametersFileTransfer)
+[folderDefinition, parametersFileTransfer, parametersProjectFiles, bAbort] = feval(hFunction, folderDefinition, parametersFileTransfer, parametersProjectFiles);
 if bAbort == true
     return
 end
 
-%%% REMOVE
-if parametersFileTransfer.bCreateProjectFiles == true
-    strMessage = sprintf('Implementation of project file creation not yet complete, switching to file transfer only!\n\n');
-    disp(strMessage);
-    parametersFileTransfer.bCreateProjectFiles = false;
+bSingleSubjectSeleted = false;
+while ~bSingleSubjectSeleted
+    [folderDefinition, parametersProjectFiles, aStrSubject, nSubjects, vSessionIndex, bAbort] = selectGeneralParametersATWM1(folderDefinition, parametersGroups, parametersProjectFiles);
+    strSubject = aStrSubject{1};
+    if nSubjects == 1
+        bSingleSubjectSeleted = true;
+    else
+        %%% Warning about multiple subject selection
+        strMessage = sprintf('The selection of multiple subjects for\nDICOM file transfer is currently not supported.\nPlease select only a single subject!');
+        msgbox(strMessage);
+    end
+end
+%strGroup = strGroup
+%ett = folderDefinition.dicomFileTransferFromScanner
+folderDefinition.strFolderRootTransferFromScanner = folderDefinition.dicomFileTransferFromScanner;
+strFolderRootTransferFromScanner = folderDefinition.strFolderRootTransferFromScanner;
+%folderDefinition.strFolderTransferFromScanner = 'D:\Daten\ATWM1\Single_Subject_Data\Pilot_Scans\Script_Test\Transfer_from_Scanner\Subject_TEST\'
+%return
+%%% Search for folder on server
+[strPathOriginalDicomFiles, bAbort] = detectDicomFileFolderOnServerATWM1(strFolderRootTransferFromScanner, parametersDialog);
+if bAbort == true
+    return
 end
 
+%%% REMOVE AT LATER STAGE
+[parametersProjectFiles] = disableProjectFileCreationATWM1(parametersProjectFiles);
 
-%%% Search for folder on server
-% Load ParametersMriScan
+%%% Load ParametersMriScan
 parametersMriSession = analyzeParametersMriScanFileATWM1;
+if isempty(parametersMriSession)
+    return
+end
 
-
-[parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, aStrPathMissingDicomFiles, bDicomFilesComplete] = checkOriginalDicomFilesATWM1(parametersMriSession, strPathOriginalDicomFiles);
+[parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, aStrPathMissingDicomFiles, bDicomFilesComplete] = checkOriginalDicomFilesATWM1(parametersMriSession, strPathOriginalDicomFiles)
 if ~bDicomFilesComplete
     return
 end
 
-%%% Detect high-res anatomy
-fileIndexVmrHighRes = parametersMriSession.fileIndexVmrHighRes;
-nFilesVmrHighRes    = parametersMriSession.nMeasurementsInRun(fileIndexVmrHighRes);
-indexStart  = parametersMriSession.vStartIndexDicomFileRune(fileIndexVmrHighRes);
-indexEnd    = indexStart + nFilesVmrHighRes;
-aStrPathOriginalDicomFilesVmrHighRes    = aStrPathOriginalDicomFiles(indexStart : indexEnd - 1);
-aStrOriginalDicomFilesVmrHighRes        = aStrOriginalDicomFiles(indexStart : indexEnd - 1);
-
-
-%%% Copy DICOM files of high-res anatomy in separate folder
-folderHighResAnatomy = strcat('X:\ATWM1\Archive_DICOM_Files\', 'High_Res_', parametersStructuralMriSequenceHighRes.strSequence, '\');
-
-
-folderHighResAnatomyGroup = strcat(folderHighResAnatomy, strGroup, '\');
-folderHighResAnatomySubject = strcat(folderHighResAnatomyGroup, strSubject, '_', parametersStructuralMriSequenceHighRes.strSequence, '\');
-if ~exist(folderHighResAnatomySubject, 'dir')
-    mkdir(folderHighResAnatomySubject);
-end
-
-for cf = 1:nFilesVmrHighRes
-    strServerPathHighResAnatomy = fullfile(folderHighResAnatomySubject, aStrOriginalDicomFilesVmrHighRes{cf});
-    strPathOriginalDicomFilesVmrHighRes = aStrPathOriginalDicomFilesVmrHighRes{cf};
-    success(cf) = copyfile(strPathOriginalDicomFilesVmrHighRes, strServerPathHighResAnatomy);
-end
-
-if sum(success) == nFilesVmrHighRes
-    strMessage = sprintf('All %i DICOM files for high-res anatomy of subject %s successfully copied to server!\n', nFilesVmrHighRes, strSubject);
-    disp(strMessage);
-else
-    nrOfFilesNotCopied = nFilesVmrHighRes - sum(success);
-    strMessage = sprintf('Error while copying DICOM files for high-res anatomy of subject %s to server!', strSubject);
-    disp(strMessage);
-    strMessage = sprintf('%i DICOM files were not copied!\n', nrOfFilesNotCopied);
-    disp(strMessage);
-end
-
 return
 
-%parametersMriSession = analyzeParametersMriScanFileATWM1
+[bTransferSuccessful] = copyAnonymizedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrPathOriginalDicomFiles, aStrOriginalDicomFiles)
 
-
-return
-
+%{
+s%%% REINSTATE
 %%% These lines are only required for the simulation of data transfer
 deleteFilesForSimulationATWM1(folderDefinition);
 strCommand = sprintf('!matlab -automation -r "simulateDataTransferFromScanner%s" &', iStudy);
 eval(strCommand);
-
-%%{
+%}
+%{
 strSubjectDataTransferFolder = [];
 while isempty(strSubjectDataTransferFolder)
     hFunction = str2func(sprintf('determineDataTransferFolderOfSubject%s', iStudy));
@@ -219,44 +99,15 @@ end
 folderDefinition.strFolderTransferFromScanner = strSubjectDataTransferFolder;
 %}
 
-%{
-strGroup = parametersGroups.strShortControls;
-folderDefinition.strFolderTransferFromScanner = strcat(folderDefinition.singleSubjectData, strGroup, '\', strSubject, '\');
-%}
+%folderDefinition.strFolderTransferFromScanner = 'D:\Daten\ATWM1\Single_Subject_Data\Pilot_Scans\Script_Test\Transfer_from_Scanner\Subject_TEST\'
 
-folderDefinition.strFolderTransferFromScanner = 'D:\Daten\ATWM1\Single_Subject_Data\Pilot_Scans\Script_Test\Transfer_from_Scanner\Subject_TEST\'
-
-%{
-%%% Create folder for data transfer
-hFunction = str2func(sprintf('createFolderForDataTransfer%s', iStudy));
-feval(hFunction, folderDefinition);
-hFunction = str2func(sprintf('createProjectDataSubFolder%s', iStudy));
-feval(hFunction, folderDefinition.strFolderTransferFromScanner);
-%}
 hFunction = str2func(sprintf('createFolderForDataTransferAndProjectFileCreation%s', iStudy));
 feval(hFunction, folderDefinition);
 
-
-%{
-%%% Change to different definition
-nTotalDicomFilesInSession = parametersDicomFileTransfer.iFilesToCopy(end, end);
-
-aStrDicomFilesCurrentlyCopied = {};
-nFilesCopied = [];
-bFileTransferComplete = false;
-nPartialFileTransfers = 0;
-nTotalFilesTransferred = [];
-
-%%% Parameters for file creation
-bIncompatibleBrainVoyagerVersion = false;
-maximumNumberOfRuns = 12;
-bAllFilesCreated(1:maximumNumberOfRuns) = 0;
-%}
 hFunction = str2func(sprintf('setIntialParametersForFileTransferAndProjectFileCreation%s', iStudy));
 [nTotalDicomFilesInSession, aStrDicomFilesCurrentlyCopied, nFilesCopied, bFileTransferComplete, nPartialFileTransfers, nTotalFilesTransferred, bIncompatibleBrainVoyagerVersion, maximumNumberOfRuns, bAllFilesCreated] = feval(hFunction);
 
 while bFileTransferComplete == false
-    %commandwindow
     nPartialFileTransfers = nPartialFileTransfers + 1;
     hFunction = str2func(sprintf('detectPartialDicomFileTransferFromScanner%s', iStudy));
     [aStrDicomFilesInScannerTransferFolder, aStrDicomFilesToBeCopied, nDicomFilesTransferred(nPartialFileTransfers)] = feval(hFunction, folderDefinition, parametersDicomFileTransfer, parametersDicomFiles, aStrDicomFilesCurrentlyCopied);
@@ -291,28 +142,6 @@ bSingleSubjectDataComplete = false;
 while bSingleSubjectDataComplete == false
     hFunction = str2func(sprintf('confirmCompleteTransferOfDicomFiles%s', iStudy));
     [bSingleSubjectDataComplete] = feval(hFunction, folderDefinition, parametersDicomFiles, aStrDicomFilesCurrentlyCopied, nTotalDicomFilesInSession, bSingleSubjectDataComplete);
-    
-    %%% Presentation log files
-    
-    
-    %%% ParametersMriScan
-    %{
-    strParametersMriScanFile = sprintf('%s%sParametersMriScan.m', strSubject, iStudy);
-    pathParametersMriScanFile = strcat(folderDefinition.parametersMriScan, strParametersMriScanFile);
-    newPathParametersMriScanFile = strcat(folderDefinition.strFolderCurrentSubject, strParametersMriScanFile);
-    zipPathParametersMriScanFile = strcat(folderDefinition.strFolderCurrentSubjectZip, strParametersMriScanFile);
-    
-    rehash;
-    if exist(pathParametersMriScanFile, 'file') && parametersMriScan.bVerified == true
-        status = copyfile(pathParametersMriScanFile, newPathParametersMriScanFile);
-        status = copyfile(zipPathParametersMriScanFile, newPathParametersMriScanFile);
-    elseif parametersMriScan.bVerified == false
-        strMessage = sprintf('%s has not been verified!', strParametersMriScanFile);
-        disp(strMessage);
-    end
-    %}
-    
-    
 end
 %%% Prepare zipping of complete data set
 hFunction = str2func(sprintf('scanAllFileTransferTargetFolderForDicomFiles%s', iStudy));
@@ -323,37 +152,86 @@ hFunction = str2func(sprintf('zipSingleSubjectData%s', iStudy));
 [aStrZippedFiles] = feval(hFunction, folderDefinition, aStrFilesToBeZipped);
 
 
+end
+
+
+function [parametersProjectFiles] = disableProjectFileCreationATWM1(parametersProjectFiles)
+
+%if exist (parametersProjectFiles.bCreateProjectFiles,'var') && parametersProjectFiles.bCreateProjectFiles
+    fprintf('Implementation of project file creation not yet fully implemented!\nswitching to file transfer only!\n\n');
+    parametersProjectFiles.bCreateProjectFiles = false;
+%end
 
 end
 
-%{
-function [bCreateProjectFiles, bAbort] = defineParametersForFileTransferATWM1(strStudyType);
 
-global iStudy
+function [strPathOriginalDicomFiles, bAbort] = detectDicomFileFolderOnServerATWM1(strFolderRootTransferFromScanner, parametersDialog)
+%%% Search for folder containing DICOM files of selected subject
+
 global strSubject
-global strGroup
-global strGroupLong
 
-bCreateProjectFiles = [];
-%%% Select subject for data transfer
-hFunction = str2func(sprintf('selectSubject%s', iStudy));
-[strSubject, strGroup, strGroupLong, bAbort] = feval(hFunction, strStudyType);
-if bAbort == true
-    return
+strucFolderContentTransferFromScanner = dir(strFolderRootTransferFromScanner);
+strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
+nrOfSubjFolders = 0;
+for ccont = 1:numel(strucFolderContentTransferFromScanner)
+    strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
+    strPathSubfolder = strcat(strFolderRootTransferFromScanner, strFolderContent);
+    if exist(strPathSubfolder, 'dir')
+        if ~isempty(find(strfind(strPathSubfolder, strSubject), 1))
+            nrOfSubjFolders = nrOfSubjFolders + 1;
+            aStrPathOriginalDicomFiles{nrOfSubjFolders} = strPathSubfolder;
+        end
+    end
+end
+if nrOfSubjFolders == 1
+    strPathOriginalDicomFiles = aStrPathOriginalDicomFiles{1};
+    bAbort = false;
+else    
+    % Special case of more than 1 folder for selected subject
+    [strPathOriginalDicomFiles, bAbort] = manualSelectionOfDicomFileFolderATWM1(strFolderRootTransferFromScanner, parametersDialog);
 end
 
-%%% Select file transfer options
-hFunction = str2func(sprintf('selectFileTransferOptions%s', iStudy));
-[bCreateProjectFiles, bAbort] = feval(hFunction);
-if bAbort == true
-    return
-end
-
 
 end
-%}
 
 
+function [strPathOriginalDicomFiles, bAbort] = manualSelectionOfDicomFileFolderATWM1(strFolderRootTransferFromScanner, parametersDialog)
+
+global strSubject
+
+bInvalidFolderSelected = true;
+while bInvalidFolderSelected
+    strCurrentMatlabFolder = pwd;
+    cd(strFolderRootTransferFromScanner);
+    startFolder = strcat(strFolderRootTransferFromScanner);
+    strTitle = sprintf('Please select folder for subject %s.', strSubject);
+    strPathOriginalDicomFiles = uigetdir(startFolder, strTitle);
+    if ~isempty(find(strfind(strPathOriginalDicomFiles, strSubject), 1))
+        bInvalidFolderSelected = false;
+        bAbort = false;
+    else
+        strTitle = 'Select DICOM file folder';
+        strMessage = sprintf('No valid DICOM file folder selected for subject %s!\nPlease retry.', strSubject);
+        strButton1 = sprintf('%sRetry%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+        strButton2 = sprintf('%sCancel%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+        default = strButton1;
+        choice = questdlg(strMessage, strTitle, strButton1, strButton2, default);
+        switch choice
+            case strButton1
+                bAbort = false;
+            otherwise
+                bAbort = true;
+        end
+        if bAbort == true
+            fprintf('Function aborted by user.');
+            bInvalidFolderSelected = false;
+            strPathOriginalDicomFiles = '';
+        end
+    end
+end
+cd(strCurrentMatlabFolder);
+
+end
 
 
 function createFolderForDataTransferAndProjectFileCreationATWM1(folderDefinition)
@@ -367,7 +245,7 @@ feval(hFunction, folderDefinition.strFolderTransferFromScanner);
 end
 
 
-function createFolderForDataTransferATWM1(folderDefinition);
+function createFolderForDataTransferATWM1(folderDefinition)
 %%% Create folder for data transfer
 if ~exist(folderDefinition.strFolderCurrentSubject, 'dir')
     mkdir(folderDefinition.strFolderCurrentSubject)
@@ -380,7 +258,7 @@ end
 end
 
 
-function [nTotalDicomFilesInSession, aStrDicomFilesCurrentlyCopied, nFilesCopied, bFileTransferComplete, nPartialFileTransfers, nTotalFilesTransferred, bIncompatibleBrainVoyagerVersion, maximumNumberOfRuns, bAllFilesCreated] = setIntialParametersForFileTransferAndProjectFileCreationATWM1();
+function [nTotalDicomFilesInSession, aStrDicomFilesCurrentlyCopied, nFilesCopied, bFileTransferComplete, nPartialFileTransfers, nTotalFilesTransferred, bIncompatibleBrainVoyagerVersion, maximumNumberOfRuns, bAllFilesCreated] = setIntialParametersForFileTransferAndProjectFileCreationATWM1()
 
 global iStudy
 parametersDicomFileTransfer = eval(['parametersDicomFileTransfer', iStudy]);
@@ -403,7 +281,8 @@ bAllFilesCreated(1:maximumNumberOfRuns) = 0;
 
 end
 
-function deleteFilesForSimulationATWM1(folderDefinition);
+
+function deleteFilesForSimulationATWM1(folderDefinition)
 %%% Delete existing directory for testing purposes
 if exist(folderDefinition.strFolderCurrentSubject, 'dir')
     rmdir(folderDefinition.strFolderCurrentSubject, 's')
@@ -499,7 +378,7 @@ end
 end
 
 
-function waitForDicomFileScanRepeatATWM1(parametersDicomFileTransfer, bAdditionalDicomFilesDetected);
+function waitForDicomFileScanRepeatATWM1(parametersDicomFileTransfer, bAdditionalDicomFilesDetected)
 %%% Adjust time interval for DICOM file search
 if bAdditionalDicomFilesDetected == true
     fTimeIntervalDicomFileCount = parametersDicomFileTransfer.fTimeIntervalDicomFileCountFast;
@@ -509,10 +388,11 @@ end
 %%% Wait before repeating the DICOM file count
 pause(fTimeIntervalDicomFileCount);
 
+
 end
 
 
-function [aStrDicomFilesCurrentlyCopied, nFilesCopied, nTotalFilesTransferred] = copyDicomFilesToSingleSubjectFolderATWM1(folderDefinition, aStrDicomFilesCurrentlyCopied, aStrDicomFilesToBeCopied, nPartialFileTransfers, nDicomFilesTransferred, nTotalFilesTransferred, nFilesCopied);
+function [aStrDicomFilesCurrentlyCopied, nFilesCopied, nTotalFilesTransferred] = copyDicomFilesToSingleSubjectFolderATWM1(folderDefinition, aStrDicomFilesCurrentlyCopied, aStrDicomFilesToBeCopied, nPartialFileTransfers, nDicomFilesTransferred, nTotalFilesTransferred, nFilesCopied)
 %%% Copy newly transferred files to single subject folder and to temporary
 %%% folder used for zipping
 nFilesToBeCopied(nPartialFileTransfers) = numel(aStrDicomFilesToBeCopied);
@@ -524,11 +404,9 @@ for cf = 1:nFilesToBeCopied(nPartialFileTransfers)
     if exist(pathDicomFileTransferFolder, 'file')
         status = copyfile(pathDicomFileTransferFolder, pathDicomFileSingleSubjectFolder);
         if status == 0
-            strMessage = sprintf('Could not copy file %s to %s', pathDicomFileTransferFolder, folderDefinition.strFolderCurrentSubject);
-            disp(strMessage);
+            fprintf('Could not copy file %s to %s\n', pathDicomFileTransferFolder, folderDefinition.strFolderCurrentSubject);
         else
-            strMessage = sprintf('File %s successfully copied to %s', pathDicomFileTransferFolder, folderDefinition.strFolderCurrentSubject);
-            disp(strMessage);
+            fprintf('File %s successfully copied to %s\n', pathDicomFileTransferFolder, folderDefinition.strFolderCurrentSubject);
             iFilesCopied(nPartialFileTransfers, cf) = 1;
             %%% Also copy the file to the temporary folder used for zipping
             pathDicomFileSingleSubjectFolderZip = strcat(folderDefinition.strFolderCurrentSubjectZip, aStrDicomFilesToBeCopied{cf});
@@ -536,17 +414,17 @@ for cf = 1:nFilesToBeCopied(nPartialFileTransfers)
             aStrDicomFilesCopiedPartialTransfer{cf} = aStrDicomFilesToBeCopied{cf};
         end
     else
-        strMessage = sprintf('Could not find file %s', pathDicomFileTransferFolder);
-        disp(strMessage);
+        fprintf('Could not find file %s\n', pathDicomFileTransferFolder);
     end
     nFilesCopied(nPartialFileTransfers) = sum(iFilesCopied(nPartialFileTransfers, :));
 end
 aStrDicomFilesCurrentlyCopied = unique([aStrDicomFilesCurrentlyCopied, aStrDicomFilesCopiedPartialTransfer]);
 
+
 end
 
 
-function copyMissingDicomFilesATWM1(folderDefinition, aStrDicomFilesInTargetFolder, aStrCompleteDicomFiles, aStrDicomFilesInScannerTransferFolder);
+function copyMissingDicomFilesATWM1(folderDefinition, aStrDicomFilesInTargetFolder, aStrCompleteDicomFiles, aStrDicomFilesInScannerTransferFolder)
 %%% Determine missing DICOM files
 aStrMissingDicomFiles = setxor(aStrDicomFilesInTargetFolder, aStrCompleteDicomFiles);
 nMissingDicomFiles = numel(aStrMissingDicomFiles);
@@ -575,7 +453,7 @@ end
 end
 
 
-function [bSingleSubjectDataComplete] = confirmCompleteTransferOfDicomFilesATWM1(folderDefinition, parametersDicomFiles, aStrDicomFilesCurrentlyCopied, nTotalDicomFilesInSession, bSingleSubjectDataComplete);
+function [bSingleSubjectDataComplete] = confirmCompleteTransferOfDicomFilesATWM1(folderDefinition, parametersDicomFiles, aStrDicomFilesCurrentlyCopied, nTotalDicomFilesInSession, bSingleSubjectDataComplete)
 global iStudy
 
 %%% Double check whether all DICOM files have been copied from scanner
@@ -606,7 +484,7 @@ end
 end
 
 
-function [aStrRenamedDicomFiles, aStrDicomFilesInZipFolder, nRenamedDicomFiles, nDicomFilesInZipFolder] = scanAllFileTransferTargetFolderForDicomFilesATWM1(folderDefinition, parametersDicomFiles);
+function [aStrRenamedDicomFiles, aStrDicomFilesInZipFolder, nRenamedDicomFiles, nDicomFilesInZipFolder] = scanAllFileTransferTargetFolderForDicomFilesATWM1(folderDefinition, parametersDicomFiles)
 global iStudy
 
 hFunction = str2func(sprintf('scanFolderForDicomFiles%s', iStudy));
@@ -614,10 +492,11 @@ hFunction = str2func(sprintf('scanFolderForDicomFiles%s', iStudy));
 hFunction = str2func(sprintf('scanFolderForDicomFiles%s', iStudy));
 [aStrDicomFilesInZipFolder, nDicomFilesInZipFolder] = feval(hFunction, folderDefinition.strFolderCurrentSubjectZip, parametersDicomFiles);
 
+
 end
 
 
-function [aStrZippedFiles] = zipSingleSubjectDataATWM1(folderDefinition, aStrFilesToBeZipped);
+function [aStrZippedFiles] = zipSingleSubjectDataATWM1(folderDefinition, aStrFilesToBeZipped)
 global iStudy
 global strSubject
 

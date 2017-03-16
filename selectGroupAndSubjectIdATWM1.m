@@ -2,7 +2,7 @@ function [strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAnd
 
 global iStudy
 
-test = nargin
+%test = nargin
 
 strDialogSelectionModeGroup = 'single'; 
 if nargin > 0
@@ -15,7 +15,7 @@ end
 bSubjectInformationCorrect = false;
 while bSubjectInformationCorrect == false
     
-    %% Select group
+    %%% Select group
     strPrompt = 'Please select the group';
     strTitle = 'Group selection';
     vListSize = [300, 100];
@@ -28,7 +28,7 @@ while bSubjectInformationCorrect == false
     strGroup        = parametersGroups.aStrShortGroups{iGroup};
     strGroupLong    = parametersGroups.aStrLongGroups{iGroup};
     
-    %% Select subject
+    %%% Select subject
     strPrompt = 'Please select the subject code';
     strTitle = 'Subject code';
     vListSize = [300, 600];
@@ -40,7 +40,7 @@ while bSubjectInformationCorrect == false
     end
     aStrSubject = aSubject.ATWM1_IMAGING.Groups.(genvarname(strGroup))(iSubject);
     nSubjects = numel(aStrSubject);
-    %% Verify information
+    %%% Verify information
     hFunction = str2func(sprintf('verifySubjectAndGroupInformation%s', iStudy));
     [bAbort, bSubjectInformationCorrect] = feval(hFunction, aStrSubject, strGroupLong, nSubjects);
     if bAbort == true
@@ -50,7 +50,7 @@ while bSubjectInformationCorrect == false
     
 end
 
-if nSubjects == 1 && strcmp(strDialogSelectionModeSubject, 'single')
+if nSubjects == 1% && strcmp(strDialogSelectionModeSubject, 'single')
     strSubject = aStrSubject{1};
 else
     strSubject = '';
@@ -59,7 +59,7 @@ end
 end
 
 
-function [bAbort, bSubjectInformationCorrect] = verifySubjectAndGroupInformationATWM1(aStrSubject, strGroupLong, nSubjects);
+function [bAbort, bSubjectInformationCorrect] = verifySubjectAndGroupInformationATWM1(aStrSubject, strGroupLong, nSubjects)
 
 global iStudy
 
@@ -97,4 +97,3 @@ end
 
 
 end
-

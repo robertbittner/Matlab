@@ -12,8 +12,14 @@ parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence
 parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
 parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
 
-hFunction = str2func(sprintf('readParametersMriSessionFile%s', iStudy));
-parametersMriSession = feval(hFunction);
+try
+    hFunction = str2func(sprintf('readParametersMriSessionFile%s', iStudy));
+    parametersMriSession = feval(hFunction);
+catch
+    parametersMriSession = [];
+    fprintf('Could not read parametersMriSession file for %s -  run %i!\n\n', strSubject, iSession);
+    return
+end
 
 hFunction = str2func(sprintf('readFileIndicesForFunctionalRuns%s', iStudy));
 [fileIndex] = feval(hFunction, parametersStudy, parametersMriSession);

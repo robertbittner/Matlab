@@ -28,5 +28,10 @@ vSessionIndex(1:nSubjects) = 1;
 hFunction = str2func(sprintf('addServerFolderDefinitions%s', iStudy));
 folderDefinition = feval(hFunction, folderDefinition);
 
+%%% Change root folder for dicomFileTransferFromScanner to test config
+folderDefinition.dicomFileTransferFromScanner   = 'D:\Daten\ATWM1\_TEST\Server\02_DICOM_Files\';
+folderDefinition.archiveDICOMfiles              = 'D:\Daten\ATWM1\_TEST\Local\Archive_DICOM_Files\';
+folderDefinition.logfilesServer                 = 'D:\Daten\ATWM1\_TEST\Server\Presentation_Logfiles\';
+
 
 end

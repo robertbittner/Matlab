@@ -10,13 +10,19 @@ global strSubject
 global strGroup
 global iSession
 
+global bTestConfiguration
+
 iStudy = 'ATWM1';
+
+bTestConfiguration = false;
 
 folderDefinition            = eval(['folderDefinition', iStudy]);
 parametersStudy             = eval(['parametersStudy', iStudy]);
 parametersDialog            = eval(['parametersDialog', iStudy]);
 parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
 parametersFileTransfer      = eval(['parametersFileTransfer', iStudy]);
+
+parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
 parametersGroups            = eval(['parametersGroups', iStudy]);
 
 parametersParadigm_WM_MRI   = eval(['parametersParadigm_WM_MRI_', iStudy]);
@@ -27,31 +33,39 @@ parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence
 parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
 parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
 
+strStudyType = defineStudyTypeImaging(parametersStudy);
 
-strStudyType = sprintf('%s_%s', iStudy, parametersStudy.strImaging);
 
-hFunction = str2func(sprintf('prepareMriScanSessionFilesTransfer%s', iStudy));
-[folderDefinition, parametersFileTransfer, aStrSubject, nSubjects, vSessionIndex, bAbort] = feval(hFunction, folderDefinition, parametersGroups, parametersFileTransfer);
+if ~bTestConfiguration
+    hFunction = str2func(sprintf('prepareMriScanSessionFilesTransfer%s', iStudy));
+    [folderDefinition, parametersFileTransfer, aStrSubject, nSubjects, vSessionIndex, bAbort] = feval(hFunction, folderDefinition, parametersGroups, parametersFileTransfer);
+else
+    [folderDefinition, parametersProjectFiles, aStrSubject, nSubjects, vSessionIndex, bAbort] = setTestConfigurationParametersATWM1(folderDefinition, parametersGroups, parametersProjectFiles);
+end
 if bAbort == true
     return
 end
 
+%{
+%%% Adjust parametersProjectFiles to parametersFileTransfer
+parametersProjectFiles.bCreateProjectFiles                          = parametersFileTransfer.bCreateProjectFiles;
+parametersProjectFiles.bCompleteTransferBeforeProjectFileCreation   = parametersFileTransfer.bCompleteTransferBeforeProjectFileCreation;
+%}
+
+%{
 %%% REMOVE
 %%% CHANGE LOCATION OF DATA FOLDER
 folderDefinition.dicomFileTransferFromScanner = 'D:\Daten\ATWM1\Archive_DICOM_Files\Michael_Schaum\OriginalDatasets\';
 fprintf('CHANGING DATA TRANSFER FOLDER TO %s\n', folderDefinition.dicomFileTransferFromScanner);
-
-
-%return
+%}
 %%% REMOVE
 if parametersFileTransfer.bCreateProjectFiles == true
-    strMessage = sprintf('Implementation of project file creation not yet complete, switching to file transfer only!\n\n');
-    disp(strMessage);
+    fprintf('Implementation of project file creation not yet complete, switching to file transfer only!\n\n');
     parametersFileTransfer.bCreateProjectFiles = false;
 end
 %%% REMOVE
 
-
+%return
 for cs = 1:nSubjects
     strSubject = aStrSubject{cs};
     iSession = vSessionIndex(cs);
@@ -67,45 +81,47 @@ for cs = 1:nSubjects
         continue
     end
     
-    try
+    %%{
+    %try
         % Transfer files
         executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
-    %%{
+        %{
     catch
-        strMessage = sprintf('Error while transferring files for subject %s!\nSkipping subject', strSubject);
-        disp(strMessage);
+        fprintf('Error while transferring files for subject %s!\nSkipping subject!\n\n', strSubject);
         continue
     end
     %}
+    %{
     if parametersFileTransfer.bFileTransferSuccessful
         %%% Anonymize DICOMs from MPRAGE_HIGH_RES and transfer them to a
         %%% separate archive to provide them to study participants
-        
-        %{
-    parametersStructuralMriSequence                 = aParametersStructuralMriSequence{cf};
-    parametersProjectFiles.iDicomFileRun            = vFileIndicesVmr(cf);
-    parametersProjectFiles.nrOfDicomFilesForProject = parametersStructuralMriSequence.nSlices;
-    %%% Determine subfolder and copy DICOM files
-    parametersProjectFiles.strCurrentProject = sprintf('%s_%s', parametersStructuralMriSequence.strSequence , parametersStructuralMriSequence.strResolution);
-    [folderDefinition, parametersProjectFiles] = determineCurrentProjectDataSubfolderATWM1(folderDefinition, parametersProjectFiles, structProjectDataSubFolders);
-    [parametersProjectFiles, bAbortFunction] = prepareDicomFilesForProjectATWM1(folderDefinition, parametersProjectFiles);
-        
-    
-parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
 
-aParametersStructuralMriSequence = {
-    parametersStructuralMriSequenceHighRes
-    parametersStructuralMriSequenceLowRes
-    };
-vFileIndicesVmr = [
-    parametersMriSession.fileIndexVmrHighRes
-    parametersMriSession.fileIndexVmrLowRes
-    ];
-nrOfStructuralMriProjects = numel(aParametersStructuralMriSequence);
+        %{
+        parametersStructuralMriSequence                 = aParametersStructuralMriSequence{cf};
+        parametersProjectFiles.iDicomFileRun            = vFileIndicesVmr(cf);
+        parametersProjectFiles.nrOfDicomFilesForProject = parametersStructuralMriSequence.nSlices;
+        %%% Determine subfolder and copy DICOM files
+        parametersProjectFiles.strCurrentProject = sprintf('%s_%s', parametersStructuralMriSequence.strSequence , parametersStructuralMriSequence.strResolution);
+        [folderDefinition, parametersProjectFiles] = determineCurrentProjectDataSubfolderATWM1(folderDefinition, parametersProjectFiles, structProjectDataSubFolders);
+        [parametersProjectFiles, bAbortFunction] = prepareDicomFilesForProjectATWM1(folderDefinition, parametersProjectFiles);
+
+
+        parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
+        parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
+
+        aParametersStructuralMriSequence = {
+        parametersStructuralMriSequenceHighRes
+        parametersStructuralMriSequenceLowRes
+        };
+        vFileIndicesVmr = [
+        parametersMriSession.fileIndexVmrHighRes
+        parametersMriSession.fileIndexVmrLowRes
+        ];
+        nrOfStructuralMriProjects = numel(aParametersStructuralMriSequence);
         %}
     end
-    
+    %}
+
 end
 
 end
@@ -128,14 +144,14 @@ if bAllFoldersCanBeAccessed == false
     return
 end
 
-%%% Load additional folder definitions 
+%%% Load additional folder definitions
 hFunction = str2func(sprintf('addServerFolderDefinitions%s', iStudy));
 folderDefinition = feval(hFunction, folderDefinition);
 
 %%% Select file transfer options
 hFunction = str2func(sprintf('selectFileTransferOptions%s', iStudy));
 [folderDefinition, parametersFileTransfer, bAbort] = feval(hFunction, folderDefinition, parametersFileTransfer);
-if bAbort == true
+if bAbort
     return
 end
 
@@ -151,9 +167,10 @@ end
 
 %%% Determine session for each subject
 [vSessionIndex, bAbort] = determineMriSessionATWM1(aStrSubject, nSubjects);
-if bAbort == true
+if bAbort
     return
 end
+
 
 end
 
@@ -164,12 +181,11 @@ global strSubject
 
 bSkipSubject = false;
 % Load ParametersMriScan for subject
-try
-    parametersMriSession = analyzeParametersMriScanFileATWM1;
-catch
+parametersMriSession = analyzeParametersMriScanFileATWM1;
+if isempty(parametersMriSession)
     fprintf('Error! ParametersMriScanFile for subject %s not found!\nSkipping subject!\n', strSubject);
     bSkipSubject = true;
-    parametersMriSession = [];
+    
     aStrOriginalDicomFiles = [];
     aStrPathOriginalDicomFiles = [];
     aStrPathMissingDicomFiles = [];
@@ -188,8 +204,6 @@ end
 
 function executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
 
-%global strSubject 
-
 % Transfer DICOM files
 [strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, parametersFileTransfer);
 
@@ -203,7 +217,7 @@ function executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStu
 zipMriSessionFilesLocalAndServerATWM1(parametersStudy, parametersFileTransfer, strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, bDicomLocalTransfer, bLogfilesLocalTransfer, bParametersFileLocalTransfer, bDicomServerTransfer, bLogfilesServerTransfer, bParametersFileServerTransfer);
 
 % Transfer highRes anatomy so separate archive folder
-if parametersFileTransfer.barchiveAnonymisedHighResAnatomySeparately
+if parametersFileTransfer.bArchiveAnonymisedHighResAnatomySeparately
     archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, aStrOriginalDicomFiles, parametersFileTransfer);
 end
 
@@ -235,8 +249,7 @@ bSubjectFolderFound = true;
 if nrOfSubjFolders == 0
     strFolderOriginalDicomFilesSubject = '';
     bSubjectFolderFound = false;
-    strMessage = sprintf('No folder containing DICOM files found for subject %s.\nSkipping subject.\n', strSubject);
-    disp(strMessage);
+    fprintf('No folder containing DICOM files found for subject %s.\nSkipping subject.\n\n', strSubject);
 elseif nrOfSubjFolders == 1
     strFolderOriginalDicomFilesSubject = aStrFolderOriginalDicomFilesSubject{1};
 else
@@ -384,15 +397,12 @@ global strSubject
 
 if sum(success) == parametersMriSession.nDicomFiles
     bDicomLocalTransfer = true;
-    strMessage = sprintf('All %i DICOM files of subject %s successfully copied to %s!\n', parametersMriSession.nDicomFiles, strSubject, upper(strFileDestination));
-    disp(strMessage);
+    fprintf('All %i DICOM files of subject %s successfully copied to %s!\n\n', parametersMriSession.nDicomFiles, strSubject, upper(strFileDestination));
 else
     bDicomLocalTransfer = false;
     nrOfFilesNotCopied = parametersMriSession.nDicomFiles - sum(success);
-    strMessage = sprintf('Error while copying DICOM files of subject %s to %s!', strSubject, upper(strFileDestination));
-    disp(strMessage);
-    strMessage = sprintf('%i DICOM files were not copied!\n', nrOfFilesNotCopied);
-    disp(strMessage);
+    fprintf('Error while copying DICOM files of subject %s to %s!\n', strSubject, upper(strFileDestination));
+	fprintf('%i DICOM files were not copied!\n\n', nrOfFilesNotCopied);
 end
 
 end
@@ -416,7 +426,7 @@ end
 
 %%% Determine server path for logfiles
 strFolderLogfilesServerGroup    = strcat(folderDefinition.logfilesServer, strGroup, '\');
-strFolderLogfilesServerSubject  = strcat(strFolderLogfilesServerGroup, strSubject, '\');
+strFolderLogfilesServerSubject  = strcat(strFolderLogfilesServerGroup, strSubject, '\')
 for cf = 1:nLogfiles
     aStrPathServerPresentationLogfiles{cf}          = fullfile(strFolderLogfilesServerSubject, aStrPresentationLogfiles{cf});
     aStrPathServerArchivePresentationLogfiles{cf}   = fullfile(strFolderServerArchiveDicomFilesSubject, aStrPresentationLogfiles{cf});
@@ -460,15 +470,12 @@ global strSubject
 
 if sum(success) == nLogfiles
     bLogfilesTransfer = true;
-    strMessage = sprintf('All %i Presentation logfiles of subject %s successfully copied to %s!\n', nLogfiles, strSubject, strLogfilesDestination);
-    disp(strMessage);
+    fprintf('All %i Presentation logfiles of subject %s successfully copied to %s!\n\n', nLogfiles, strSubject, strLogfilesDestination);
 else
     bLogfilesTransfer = false;
     nrOfFilesNotCopied = nLogfiles - sum(success);
-    strMessage = sprintf('Error while copying Presentation logfiles of subject %s to %s!', strSubject, strLogfilesDestination);
-    disp(strMessage);
-    strMessage = sprintf('%i Presentation logfiles were not copied!\n', nrOfFilesNotCopied);
-    disp(strMessage);
+    fprintf('Error while copying Presentation logfiles of subject %s to %s!\n', strSubject, strLogfilesDestination);
+	fprintf('%i Presentation logfiles were not copied!\n\n', nrOfFilesNotCopied);
 end
 
 end
@@ -503,12 +510,10 @@ global strSubject
 
 if success
     bParametersFileTransfer = true;
-    strMessage = sprintf('Parameter file %s for subject %s successfully copied to %s!\n', strParametersMriSessionFile, strSubject, strParametersMriScanFileDestination);
-    disp(strMessage);
+    fprintf('Parameter file %s for subject %s successfully copied to %s!\n\n', strParametersMriSessionFile, strSubject, strParametersMriScanFileDestination);
 else
     bParametersFileTransfer = false;
-    strMessage = sprintf('Error while copying parameter file %s for subject %s to %s!\nParameter file was not copied', strPathParametersMriSessionFile, strSubject, strParametersMriScanFileDestination);
-    disp(strMessage);
+    fprintf('Error while copying parameter file %s for subject %s to %s!\nParameter file was not copied!\n\n', strPathParametersMriSessionFile, strSubject, strParametersMriScanFileDestination);
 end
 
 end

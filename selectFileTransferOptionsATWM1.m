@@ -36,60 +36,6 @@ if ~bUseStandardTransferParameters
     end    
 end
 
-
-end
-
-
-function [folderDefinition, parametersFileTransfer, bAbort] = selectServerTransferFolderOptionsATWM1(folderDefinition, parametersDialog, parametersFileTransfer)
-
-global strSubject
-global strGroupLong
-
-
-%%% Create dialog to decide whether to use an alternative server transfer
-%%% folder
-strQuestion = sprintf('Server transfer folder option\n\n%s\n\n%s', strSubject, strGroupLong);
-strTitle = 'Server transfer folder options';
-strOption1 = sprintf('%sUse standard server transfer folder%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-strOption2 = sprintf('%sSelect alternative server transfer folder%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-strOption3 = sprintf('%sAbort%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-choice = questdlg(strQuestion, strTitle, strOption1, strOption2, strOption3, strOption1);
-switch choice
-    case strOption1
-        bAbort = false;
-    case strOption2
-        [folderDefinition, parametersFileTransfer, bAbort] = selectAlternativeServerTransferFolderATWM1(folderDefinition, parametersFileTransfer);
-    otherwise
-        bAbort = true;
-        strMessage = sprintf('No server transfer folder option selected.\nAborting function.');
-        disp(strMessage);
-end
-
-
-end
-
-
-function [folderDefinition, parametersFileTransfer, bAbort] = selectAlternativeServerTransferFolderATWM1(folderDefinition, parametersFileTransfer)
-%%% Select alternative server transfer folder
-
-strDialogTitle = 'Please select alternative server transfer folder';
-folderDefinition.dicomFileTransferFromScanner = uigetdir(folderDefinition.dicomFileTransferFromScanner, strDialogTitle);
-
-if ischar(folderDefinition.dicomFileTransferFromScanner)
-    indDirSep = strfind(folderDefinition.dicomFileTransferFromScanner , folderDefinition.iDirectorySeparator);
-    indLastDirSep = indDirSep(end);
-    if indLastDirSep ~= numel(folderDefinition.dicomFileTransferFromScanner)
-        folderDefinition.dicomFileTransferFromScanner = sprintf('%s%s', folderDefinition.dicomFileTransferFromScanner, folderDefinition.iDirectorySeparator);
-    end
-    parametersFileTransfer.bUseStandardServerTransferFolder = false;
-    bAbort = false;
-else
-    bAbort = true;
-    strMessage = sprintf('No valid alternative server transfer folder selected.\nAborting function.');
-    disp(strMessage);
-end
-
-
 end
 
 
@@ -133,6 +79,56 @@ end
 end
 
 
+function [folderDefinition, parametersFileTransfer, bAbort] = selectServerTransferFolderOptionsATWM1(folderDefinition, parametersDialog, parametersFileTransfer)
+
+global strSubject
+global strGroupLong
+
+%%% Create dialog to decide whether to use an alternative server transfer
+%%% folder
+strQuestion = sprintf('Server transfer folder option\n\n%s\n\n%s', strSubject, strGroupLong);
+strTitle = 'Server transfer folder options';
+strOption1 = sprintf('%sUse standard server transfer folder%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+strOption2 = sprintf('%sSelect alternative server transfer folder%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+strOption3 = sprintf('%sAbort%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+choice = questdlg(strQuestion, strTitle, strOption1, strOption2, strOption3, strOption1);
+switch choice
+    case strOption1
+        bAbort = false;
+    case strOption2
+        [folderDefinition, parametersFileTransfer, bAbort] = selectAlternativeServerTransferFolderATWM1(folderDefinition, parametersFileTransfer);
+    otherwise
+        bAbort = true;
+        fprintf('No server transfer folder option selected.\nAborting function.\n');
+end
+
+
+end
+
+
+function [folderDefinition, parametersFileTransfer, bAbort] = selectAlternativeServerTransferFolderATWM1(folderDefinition, parametersFileTransfer)
+%%% Select alternative server transfer folder
+
+strDialogTitle = 'Please select alternative server transfer folder';
+folderDefinition.dicomFileTransferFromScanner = uigetdir(folderDefinition.dicomFileTransferFromScanner, strDialogTitle);
+
+if ischar(folderDefinition.dicomFileTransferFromScanner)
+    indDirSep = strfind(folderDefinition.dicomFileTransferFromScanner , folderDefinition.iDirectorySeparator);
+    indLastDirSep = indDirSep(end);
+    if indLastDirSep ~= numel(folderDefinition.dicomFileTransferFromScanner)
+        folderDefinition.dicomFileTransferFromScanner = sprintf('%s%s', folderDefinition.dicomFileTransferFromScanner, folderDefinition.iDirectorySeparator);
+    end
+    parametersFileTransfer.bUseStandardServerTransferFolder = false;
+    bAbort = false;
+else
+    bAbort = true;
+    fprintf('No valid alternative server transfer folder selected.\nAborting function.\n');
+end
+
+
+end
+
+
 function [parametersFileTransfer, bAbort] = selectFileTransferOptionATWM1(parametersDialog, parametersFileTransfer)
 %%% Create dialog to decide where the raw data is tranferred to
 
@@ -158,8 +154,7 @@ switch choice
         parametersFileTransfer.bArchiveFilesOnLocal = false;
         parametersFileTransfer.bArchiveFilesOnServer = false;
         bAbort = true;
-        strMessage = sprintf('No file transfer mode selected.\nAborting function.');
-        disp(strMessage);
+        printf('No file transfer mode selected.\nAborting function.\n');
 end
 
 
@@ -173,25 +168,23 @@ function [parametersFileTransfer, bAbort] = selectFileOverwriteOption(parameters
 global strSubject
 global strGroupLong
 
-
 strQuestion = sprintf('Select file overwrite option\n\n%s\n\n%s', strSubject, strGroupLong);
 strTitle = 'File overwrite options';
-strOption1 = sprintf('%sOverwrite existing files%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-strOption2 = sprintf('%sPreserve existing files%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+strOption1 = sprintf('%sPreserve existing files%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+strOption2 = sprintf('%sOverwrite existing files%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
 strOption3 = sprintf('%sAbort%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
 choice = questdlg(strQuestion, strTitle, strOption1, strOption2, strOption3, strOption1);
 switch choice
     case strOption1
-        parametersFileTransfer.bOverwriteExistingFiles = true;
+        parametersFileTransfer.bOverwriteExistingFiles = false;
         bAbort = false;
     case strOption2
-        parametersFileTransfer.bOverwriteExistingFiles = false;
+        parametersFileTransfer.bOverwriteExistingFiles = true;
         bAbort = false;
     otherwise
         parametersFileTransfer.bOverwriteExistingFiles = false;
         bAbort = true;
-        strMessage = sprintf('No file overwrite option selected.\nAborting function.');
-        disp(strMessage);
+        fprintf('No file overwrite option selected.\nAborting function.\n');
 end
 
 
@@ -204,7 +197,6 @@ function [parametersFileTransfer, bAbort] = selectProjectFileCreationOptionATWM1
 global strSubject
 global strGroupLong
 
-
 strQuestion = sprintf('Select project file creation options for\n\n%s\n\n%s', strSubject, strGroupLong);
 strTitle = 'Project file creation options';
 strOption1 = sprintf('%sFile transfer only%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
@@ -213,16 +205,15 @@ strOption3 = sprintf('%sAbort%s', parametersDialog.strEmpty, parametersDialog.st
 choice = questdlg(strQuestion, strTitle, strOption1, strOption2, strOption3, strOption1);
 switch choice
     case strOption1
-        parametersFileTransfer.bCreateProjectFiles = false;
+        parametersFileTransfer.bProjectFileCreation = false;
         bAbort = false;
     case strOption2
-        parametersFileTransfer.bCreateProjectFiles = true;
+        parametersFileTransfer.bProjectFileCreation = true;
         bAbort = false;
     otherwise
-        parametersFileTransfer.bCreateProjectFiles = false;
+        parametersFileTransfer.bProjectFileCreation = false;
         bAbort = true;
-        strMessage = sprintf('No file transfer option selected.\nAborting function.');
-        disp(strMessage);
+        fprintf('No file transfer option selected.\nAborting function.\n');
 end
 
 
@@ -234,7 +225,6 @@ function [parametersFileTransfer, bAbort] = selectHighResAnatomyArchiveOptionATW
 
 global strSubject
 global strGroupLong
-
 
 strQuestion = sprintf('Select HighResAnatomy archive options for\n\n%s\n\n%s', strSubject, strGroupLong);
 strTitle = 'HighResAnatomy archive options';
@@ -252,10 +242,8 @@ switch choice
     otherwise
         parametersFileTransfer.bArchiveHighResAnatomySeparately = false;
         bAbort = true;
-        strMessage = sprintf('No HighResAnatomy archive options selected.\nAborting function.');
-        disp(strMessage);
+        fprintf('No HighResAnatomy archive options selected.\nAborting function.\n');
 end
 
 
 end
-

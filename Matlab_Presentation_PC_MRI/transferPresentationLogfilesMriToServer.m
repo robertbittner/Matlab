@@ -27,7 +27,7 @@ addpath(folderDefinition.exclusiveMatlabLocalMriScanner);
 
 %% Check server access
 bMriServerFolderCanBeAccessed = checkMriServerFolderAccessATWM1(folderDefinition);
-if bMriServerFolderCanBeAccessed == false
+if ~bMriServerFolderCanBeAccessed
     return
 end
 
@@ -41,7 +41,10 @@ aSubject = processSubjectArrayATWM1_IMAGING;
 
 %% Prepare 
 [aStrPathPresentationLogfilesLocal, nLogfiles, nMissingFiles] = createLogfileInformationATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI,strSubject);
-[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
+[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
+if bAbort
+    return
+end
 
 copyLogfilesToServerATWM1(aStrPathPresentationLogfilesLocal, aStrPathPresentationLogfilesServer, nLogfiles, bLogfilesExistsOnServer, bOverwriteExistingFiles)
 
@@ -75,26 +78,23 @@ aStrPathPresentationLogfilesLocal{nLogfiles} = sprintf('%s%s-%s_%s_%s.log', fold
 nMissingFiles = 0;
 for cf = 1:nLogfiles
     if ~exist(aStrPathPresentationLogfilesLocal{cf}, 'file')
-        strMessage = sprintf('Logfile %s not found\n', aStrPathPresentationLogfilesLocal{cf});
-        disp(strMessage);
+        fprintf('Logfile %s not found\n\n', aStrPathPresentationLogfilesLocal{cf});
         nMissingFiles = nMissingFiles + 1;
     end
 end
 
 % Add special prompt for incomplete files
 if nMissingFiles > 0
-    strMessage = sprintf('\nError: %i missing logfiles for subject %s!\n', nMissingFiles, strSubject);
-    disp(strMessage);
+    fprintf('\nError: %i missing logfiles for subject %s!\n\n', nMissingFiles, strSubject);
 else
-    strMessage = sprintf('\nLogfiles complete for subject %s!\n', strSubject);
-    disp(strMessage);
+    fprintf('\nLogfiles complete for subject %s!\n\n', strSubject);
 end
 
 
 end
 
 
-function [aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
+function [aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
 %% Prepare file copy
 % Determine file path on server
 
@@ -120,6 +120,7 @@ end
 nExistingLogfilesServer = sum(bLogfilesExistsOnServer);
 
 % Select options for existing files
+bAbort = false;
 if nExistingLogfilesServer > 0
     strQuestion = sprintf('%s logfiles already found on server.', nExistingLogfilesServer);
     strTitle = 'Logfiles found on server';
@@ -129,16 +130,13 @@ if nExistingLogfilesServer > 0
     choice = questdlg(strQuestion, strTitle, strOption1, strOption2, strOption3, strOption1);
     switch choice
         case strOption1
-            strMessage = sprintf('Preserving logfiles on server');
-            disp(strMessage);
+            fprintf('Preserving logfiles on server\n');
             bOverwriteExistingFiles = false;
         case strOption2
-            strMessage = sprintf('Overwriting logfiles on server');
-            disp(strMessage);
+            fprintf('Overwriting logfiles on server\n');
             bOverwriteExistingFiles = true;
-        case strOption3
-            strMessage = sprintf('Aborting function');
-            disp(strMessage);
+        otherwise
+            fprintf('Aborting function\n');
             bOverwriteExistingFiles = false;
             bAbort = true;
             return
@@ -158,16 +156,13 @@ for cf = 1:nLogfiles
         if bLogfilesExistsOnServer(cf) == false || bOverwriteExistingFiles == true
             [success(cf)] = copyfile(aStrPathPresentationLogfilesLocal{cf}, aStrPathPresentationLogfilesServer{cf}, 'f');
             if success(cf)
-                strMessage = sprintf('Logfile %s\nsucessfully copied to server.\n', aStrPathPresentationLogfilesLocal{cf});
-                disp(strMessage);
+                fprintf('Logfile %s\nsucessfully copied to server.\n\n', aStrPathPresentationLogfilesLocal{cf});
             end
         else
-            strMessage = sprintf('Existing logfile %s\nwas not overwritten.\n', aStrPathPresentationLogfilesServer{cf});
-            disp(strMessage);
+            fprintf('Existing logfile %s\nwas not overwritten.\n\n', aStrPathPresentationLogfilesServer{cf});
         end
     else
-        strMessage = sprintf('Logfile %s\ncould not be copied\n', aStrPathPresentationLogfilesLocal{cf});
-        disp(strMessage);
+        strMessage = sprintf('Logfile %s\ncould not be copied\n\n', aStrPathPresentationLogfilesLocal{cf});
     end
 end
 
