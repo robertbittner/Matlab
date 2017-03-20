@@ -1,7 +1,7 @@
 function transferPresentationLogfilesMriToServer()
 
-clear all;
-clc;
+clear all
+clc
 
 global iStudy
 
@@ -41,11 +41,11 @@ aSubject = processSubjectArrayATWM1_IMAGING;
 
 %% Prepare 
 [aStrPathPresentationLogfilesLocal, nLogfiles, nMissingFiles] = createLogfileInformationATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI,strSubject);
-[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
+[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
 if bAbort
     return
 end
-
+return
 copyLogfilesToServerATWM1(aStrPathPresentationLogfilesLocal, aStrPathPresentationLogfilesServer, nLogfiles, bLogfilesExistsOnServer, bOverwriteExistingFiles)
 
 
@@ -162,7 +162,7 @@ for cf = 1:nLogfiles
             fprintf('Existing logfile %s\nwas not overwritten.\n\n', aStrPathPresentationLogfilesServer{cf});
         end
     else
-        strMessage = sprintf('Logfile %s\ncould not be copied\n\n', aStrPathPresentationLogfilesLocal{cf});
+        fprintf('Logfile %s\ncould not be copied\n\n', aStrPathPresentationLogfilesLocal{cf});
     end
 end
 
