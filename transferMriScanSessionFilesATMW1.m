@@ -52,10 +52,11 @@ parametersProjectFiles.bCreateProjectFiles                          = parameters
 parametersProjectFiles.bCompleteTransferBeforeProjectFileCreation   = parametersFileTransfer.bCompleteTransferBeforeProjectFileCreation;
 %}
 
-%{
+%%{
 %%% REMOVE
 %%% CHANGE LOCATION OF DATA FOLDER
 folderDefinition.dicomFileTransferFromScanner = 'D:\Daten\ATWM1\Archive_DICOM_Files\Michael_Schaum\OriginalDatasets\';
+folderDefinition.dicomFileTransferFromScanner = 'D:\Daten\ATWM1\Archive_DICOM_Files\';
 fprintf('CHANGING DATA TRANSFER FOLDER TO %s\n', folderDefinition.dicomFileTransferFromScanner);
 %}
 %%% REMOVE
