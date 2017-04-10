@@ -25,5 +25,4 @@ else
     strPathFirstSourceFile = aStrPathSourceFiles{1};
 end
 
-
 end

@@ -32,20 +32,26 @@ if ~bMriServerFolderCanBeAccessed
 end
 
 %% Copy matlab files from server
-copyParameterFilesFromServerATWM1(folderDefinition)
-copyScriptsFromServerATWM1(folderDefinition)
+try 
+    copyParameterFilesFromServerATWM1(folderDefinition);
+    copyScriptsFromServerATWM1(folderDefinition);
+catch
+    reportErrorDuringTransferOfMatlabFilesFromServerToLocalATWM1;
+end
 
 %% Select subject
 aSubject = processSubjectArrayATWM1_IMAGING;
-[strGroup, strSubject] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject);
-
+[strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject);
 %% Prepare 
 [aStrPathPresentationLogfilesLocal, nLogfiles, nMissingFiles] = createLogfileInformationATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI,strSubject);
-[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles)
+[aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwriteExistingFiles, bAbort] = prepareLogfileCopyingATWM1(folderDefinition, strGroup, strSubject, aStrPathPresentationLogfilesLocal, nLogfiles);
 if bAbort
     return
 end
-return
+
+for c = 1:numel(aStrPathPresentationLogfilesServer)
+    test = aStrPathPresentationLogfilesServer{c}
+end
 copyLogfilesToServerATWM1(aStrPathPresentationLogfilesLocal, aStrPathPresentationLogfilesServer, nLogfiles, bLogfilesExistsOnServer, bOverwriteExistingFiles)
 
 
@@ -98,11 +104,15 @@ function [aStrPathPresentationLogfilesServer, bLogfilesExistsOnServer, bOverwrit
 %% Prepare file copy
 % Determine file path on server
 
-strGroupLogfileFolderServer = strcat(folderDefinition.logfilesServerMriScanner, '\', strGroup, '\');
+%strGroupLogfileFolderServer = strcat(folderDefinition.logfilesServerMriScanner, '\', strGroup, '\');
+strGroupLogfileFolderServer = strcat(folderDefinition.logfilesServerMriScanner, strGroup, '\');
+
 if ~exist(strGroupLogfileFolderServer, 'dir')
     mkdir(strGroupLogfileFolderServer);
 end
-strSubjectLogfileFolderServer = strcat(strGroupLogfileFolderServer, '\', strSubject, '\');
+%strSubjectLogfileFolderServer = strcat(strGroupLogfileFolderServer, '\', strSubject, '\');
+strSubjectLogfileFolderServer = strcat(strGroupLogfileFolderServer, strSubject, '\');
+
 if ~exist(strSubjectLogfileFolderServer, 'dir')
     mkdir(strSubjectLogfileFolderServer);
 end

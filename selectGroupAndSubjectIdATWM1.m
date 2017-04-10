@@ -2,15 +2,12 @@ function [strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAnd
 
 global iStudy
 
-%test = nargin
-
 strDialogSelectionModeGroup = 'single'; 
-if nargin > 0
+if numel(varargin) > 0
     strDialogSelectionModeSubject = varargin{1};
 else
     strDialogSelectionModeSubject = 'single';
 end
-
 
 bSubjectInformationCorrect = false;
 while bSubjectInformationCorrect == false

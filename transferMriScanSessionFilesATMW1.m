@@ -1,6 +1,7 @@
 function transferMriScanSessionFilesATMW1()
-%%% Moves DICOM and Presentation files from beoserv to the local
-%%% server, creates a zip archive. 
+%%% Moves DICOM files and Presentation logfiles from beoserv to the local
+%%% server, adds the parametersMriSession.m file, creates a zip archive and 
+%%% stores it locally and on the server. 
 
 clear all
 clc
@@ -19,7 +20,7 @@ bTestConfiguration = false;
 folderDefinition            = eval(['folderDefinition', iStudy]);
 parametersStudy             = eval(['parametersStudy', iStudy]);
 parametersDialog            = eval(['parametersDialog', iStudy]);
-parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
+%parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
 parametersFileTransfer      = eval(['parametersFileTransfer', iStudy]);
 
 parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
@@ -28,10 +29,10 @@ parametersGroups            = eval(['parametersGroups', iStudy]);
 parametersParadigm_WM_MRI   = eval(['parametersParadigm_WM_MRI_', iStudy]);
 
 parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
-parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence_WM_', iStudy]);
-parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
-parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
+%parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
+%parametersFunctionalMriSequence_WM      = eval(['parametersFunctionalMriSequence_WM_', iStudy]);
+%parametersFunctionalMriSequence_LOC     = eval(['parametersFunctionalMriSequence_LOC_', iStudy]);
+%parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
 
 strStudyType = defineStudyTypeImaging(parametersStudy);
 
@@ -66,7 +67,6 @@ if parametersFileTransfer.bCreateProjectFiles == true
 end
 %%% REMOVE
 
-%return
 for cs = 1:nSubjects
     strSubject = aStrSubject{cs};
     iSession = vSessionIndex(cs);
@@ -92,37 +92,6 @@ for cs = 1:nSubjects
         continue
     end
     %}
-    %{
-    if parametersFileTransfer.bFileTransferSuccessful
-        %%% Anonymize DICOMs from MPRAGE_HIGH_RES and transfer them to a
-        %%% separate archive to provide them to study participants
-
-        %{
-        parametersStructuralMriSequence                 = aParametersStructuralMriSequence{cf};
-        parametersProjectFiles.iDicomFileRun            = vFileIndicesVmr(cf);
-        parametersProjectFiles.nrOfDicomFilesForProject = parametersStructuralMriSequence.nSlices;
-        %%% Determine subfolder and copy DICOM files
-        parametersProjectFiles.strCurrentProject = sprintf('%s_%s', parametersStructuralMriSequence.strSequence , parametersStructuralMriSequence.strResolution);
-        [folderDefinition, parametersProjectFiles] = determineCurrentProjectDataSubfolderATWM1(folderDefinition, parametersProjectFiles, structProjectDataSubFolders);
-        [parametersProjectFiles, bAbortFunction] = prepareDicomFilesForProjectATWM1(folderDefinition, parametersProjectFiles);
-
-
-        parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-        parametersStructuralMriSequenceLowRes   = eval(['parametersStructuralMriSequenceLowRes', iStudy]);
-
-        aParametersStructuralMriSequence = {
-        parametersStructuralMriSequenceHighRes
-        parametersStructuralMriSequenceLowRes
-        };
-        vFileIndicesVmr = [
-        parametersMriSession.fileIndexVmrHighRes
-        parametersMriSession.fileIndexVmrLowRes
-        ];
-        nrOfStructuralMriProjects = numel(aParametersStructuralMriSequence);
-        %}
-    end
-    %}
-
 end
 
 end
@@ -199,11 +168,14 @@ if ~bDicomFilesComplete
     return
 end
 
-
 end
 
 
 function executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
+
+global iStudy
+global strGroup
+global strSubject
 
 % Transfer DICOM files
 [strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, parametersFileTransfer);
@@ -219,7 +191,7 @@ zipMriSessionFilesLocalAndServerATWM1(parametersStudy, parametersFileTransfer, s
 
 % Transfer highRes anatomy so separate archive folder
 if parametersFileTransfer.bArchiveAnonymisedHighResAnatomySeparately
-    archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, aStrOriginalDicomFiles, parametersFileTransfer);
+    [strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, success] = archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, parametersFileTransfer);
 end
 
 end
@@ -229,21 +201,7 @@ function [strFolderOriginalDicomFilesSubject, bSubjectFolderFound, bAbort] = det
 
 global strSubject
 
-%%% Search for folder containing DICOM files of selected subject
-dicomFileTransferFromScanner = folderDefinition.dicomFileTransferFromScanner;
-strucFolderContentTransferFromScanner = dir(dicomFileTransferFromScanner);
-strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
-nrOfSubjFolders = 0;
-for ccont = 1:numel(strucFolderContentTransferFromScanner)
-    strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
-    strPathSubfolder = strcat(dicomFileTransferFromScanner, strFolderContent);
-    if exist(strPathSubfolder, 'dir')
-        if ~isempty(find(strfind(strPathSubfolder, strSubject), 1))
-            nrOfSubjFolders = nrOfSubjFolders + 1;
-            aStrFolderOriginalDicomFilesSubject{nrOfSubjFolders} = strPathSubfolder;
-        end
-    end
-end
+[aStrFolderOriginalDicomFilesSubject, nrOfSubjFolders] = searchForFolderContainingSubjectDicomFilesATMW1(folderDefinition);
 
 bAbort = false;
 bSubjectFolderFound = true;
@@ -292,6 +250,29 @@ end
 end
 
 
+function [aStrFolderOriginalDicomFilesSubject, nrOfSubjFolders] = searchForFolderContainingSubjectDicomFilesATMW1(folderDefinition)
+%%% Search for folder containing DICOM files of selected subject
+
+global strSubject
+
+dicomFileTransferFromScanner = folderDefinition.dicomFileTransferFromScanner;
+strucFolderContentTransferFromScanner = dir(dicomFileTransferFromScanner);
+strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
+nrOfSubjFolders = 0;
+for ccont = 1:numel(strucFolderContentTransferFromScanner)
+    strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
+    strPathSubfolder = strcat(dicomFileTransferFromScanner, strFolderContent);
+    if exist(strPathSubfolder, 'dir')
+        if ~isempty(find(strfind(strPathSubfolder, strSubject), 1))
+            nrOfSubjFolders = nrOfSubjFolders + 1;
+            aStrFolderOriginalDicomFilesSubject{nrOfSubjFolders} = strPathSubfolder;
+        end
+    end
+end
+
+end
+
+
 function [strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, parametersFileTransfer)
 %%% Transfer all files to local computer & server
 
@@ -302,8 +283,7 @@ global strSubject
 
 %%% Copy DICOM files to local archive
 strFileDestinationLocal                 = folderDefinition.strLocal;
-strFolderLocalArchiveDicomFiles         = folderDefinition.archiveDICOMfiles;
-strFolderLocalArchiveDicomFilesGroup    = strcat(strFolderLocalArchiveDicomFiles, strGroup, '\');
+strFolderLocalArchiveDicomFilesGroup    = strcat(folderDefinition.archiveDICOMfiles, strGroup, '\');
 strFolderLocalArchiveDicomFilesSubject  = strcat(strFolderLocalArchiveDicomFilesGroup, strSubject, '\');
 
 if ~exist(strFolderLocalArchiveDicomFilesSubject, 'dir')
@@ -427,7 +407,7 @@ end
 
 %%% Determine server path for logfiles
 strFolderLogfilesServerGroup    = strcat(folderDefinition.logfilesServer, strGroup, '\');
-strFolderLogfilesServerSubject  = strcat(strFolderLogfilesServerGroup, strSubject, '\')
+strFolderLogfilesServerSubject  = strcat(strFolderLogfilesServerGroup, strSubject, '\');
 for cf = 1:nLogfiles
     aStrPathServerPresentationLogfiles{cf}          = fullfile(strFolderLogfilesServerSubject, aStrPresentationLogfiles{cf});
     aStrPathServerArchivePresentationLogfiles{cf}   = fullfile(strFolderServerArchiveDicomFilesSubject, aStrPresentationLogfiles{cf});
@@ -519,78 +499,6 @@ end
 
 end
 
-%{
-function archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, aStrOriginalDicomFiles, parametersFileTransfer)
-%%% Copy DICOM files of high-res anatomy in separate folder on the server
-
-global iStudy
-global strGroup
-global strSubject
-
-%%% Detect high-res anatomy
-fileIndexVmrHighRes = parametersMriSession.fileIndexVmrHighRes;
-nFilesVmrHighRes    = parametersMriSession.nMeasurementsInRun(fileIndexVmrHighRes);
-indexStart  = parametersMriSession.vStartIndexDicomFileRun(fileIndexVmrHighRes);
-indexEnd    = indexStart + nFilesVmrHighRes;
-aStrPathOriginalDicomFilesVmrHighRes    = aStrLocalPathOriginalDicomFiles(indexStart : indexEnd - 1);
-aStrOriginalDicomFilesVmrHighRes        = aStrOriginalDicomFiles(indexStart : indexEnd - 1);
-
-%%% Copy DICOM files of high-res anatomy in separate archive folder
-folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderATWM1(folderDefinition);
-if ~exist(folderDefinition.archiveAnonymisedHighResAnatomySubject, 'dir')
-    mkdir(folderDefinition.archiveAnonymisedHighResAnatomySubject);
-end
-
-for cf = 1:nFilesVmrHighRes
-    strPathHighResAnatomy = fullfile(folderDefinition.archiveAnonymisedHighResAnatomySubject, aStrOriginalDicomFilesVmrHighRes{cf});
-    strPathOriginalDicomFilesVmrHighRes = aStrPathOriginalDicomFilesVmrHighRes{cf};
-    if parametersFileTransfer.bOverwriteExistingFiles == true || ~exist(strPathHighResAnatomy, 'file')
-        success(cf) = copyfile(strPathOriginalDicomFilesVmrHighRes, strPathHighResAnatomy);
-    else
-        success(cf) = 1;
-    end
-end
-
-if sum(success) == nFilesVmrHighRes
-    strMessage = sprintf('All %i DICOM files for high-res anatomy of subject %s successfully copied to local computer!\n', nFilesVmrHighRes, strSubject);
-    disp(strMessage);
-else
-    nrOfFilesNotCopied = nFilesVmrHighRes - sum(success);
-    strMessage = sprintf('Error while copying DICOM files for high-res anatomy of subject %s to local computer!', strSubject);
-    disp(strMessage);
-    strMessage = sprintf('%i DICOM files were not copied!\n', nrOfFilesNotCopied);
-    disp(strMessage);
-end
-
-%%% Zip high-res anatomy
-strZipFileHighResAnatomy = sprintf('%s_%s_%s.zip', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence);
-strPathZipFileHighResAnatomy = fullfile(folderDefinition.archiveAnonymisedHighResAnatomyGroup, strZipFileHighResAnatomy);
-zip(strPathZipFileHighResAnatomy, folderDefinition.archiveAnonymisedHighResAnatomySubject);
-
-%%% Copy zip file to server folder
-if parametersFileTransfer.bArchiveFilesOnServer
-    folderDefinition.archiveAnonymisedHighResAnatomyGroupServer = strcat(folderDefinition.archiveAnonymisedHighResAnatomyServer, strGroup, '\');
-    if ~exist(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer, 'dir')
-        mkdir(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer);
-    end
-    strPathServerZipFileHighResAnatomy = fullfile(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer, strZipFileHighResAnatomy);
-    [success, strCopyMessage] = copyfile(strPathZipFileHighResAnatomy, strPathServerZipFileHighResAnatomy);
-    
-    if success
-        strMessage = sprintf('All %i DICOM files for high-res anatomy of subject %s successfully stored in zip archive\n%s on server!\n', nFilesVmrHighRes, strSubject, strPathServerZipFileHighResAnatomy);
-        disp(strMessage);
-    else
-        nrOfFilesNotCopied = nFilesVmrHighRes - sum(success);
-        strMessage = sprintf('Error while storing DICOM files for high-res anatomy of subject %s in zip archive %s on server!', strSubject, strPathServerZipFileHighResAnatomy);
-        disp(strMessage);
-        strMessage = sprintf('%i DICOM files were not copied!\n', nrOfFilesNotCopied);
-        disp(strMessage);
-        disp(strCopyMessage);
-    end
-end
-
-end
-%}
 
 function zipMriSessionFilesLocalAndServerATWM1(parametersStudy, parametersFileTransfer, strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, bDicomLocalTransfer, bLogfilesLocalTransfer, bParametersFileLocalTransfer, bDicomServerTransfer, bLogfilesServerTransfer, bParametersFileServerTransfer)
 %%% Zip subject archive folder

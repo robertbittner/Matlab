@@ -39,5 +39,4 @@ else
     fprintf('%i DICOM files missing for subject %s.\n', nrOfMissingDicomFiles, strSubject);
 end
 
-
 end
