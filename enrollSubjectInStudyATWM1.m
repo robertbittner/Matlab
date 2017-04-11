@@ -43,7 +43,7 @@ end
 %%% Proceed here for full subject enrollment
 %%% Open dialog to enter subject information
 hFunction = str2func(sprintf('enterSubjectInformation%s', iStudy));
-[subjectInformation] = feval(hFunction, parametersGroups, parametersDialog, bFullEnrollment);
+[subjectInformation] = feval(hFunction, parametersGroups, parametersDialog, bFullEnrollment)
 if isempty(subjectInformation)
     return
 end
@@ -147,14 +147,13 @@ strPrompt = 'Please select study code of previously enrolled subject.';
 listSize = [300 100];
 [iSelectedSubjectCode] = listdlg('ListString', aStrSubjectCodes, 'Name', strTitle, 'PromptString', strPrompt, 'SelectionMode', 'single', 'ListSize', listSize);
 if isempty(iSelectedSubjectCode)
-    strMessage = sprintf('No study code selected.\nAborting function.');
-    disp(strMessage);
+    fprintf('No study code selected.\nAborting function.\n');
     return
 end
 subjectInformation.strSubjectCode = aStrSubjectCodes{iSelectedSubjectCode};
 
 %%% Create dialog to select subject number
-nSubjects = aSubject.(matlab.lang.makeValidName(strcat(iStudy, '_', parametersStudy.strImaging))).nSubjects.(matlab.lang.makeValidName(subjectInformation.strSelectedShortGroup));
+nSubjects = aSubject.(matlab.lang.makeValidName(strcat(iStudy, '_', parametersStudy.strImaging))).nSubjects.ALL;
 for cs = 1:nSubjects
     aStrSubjectNumber{cs} = sprintf('%03i', cs);
 end
@@ -163,8 +162,7 @@ strPrompt = 'Please select subject number of previously enrolled subject.';
 listSize = [300 100];
 [iSelectedSubjectNumber] = listdlg('ListString', aStrSubjectNumber, 'Name', strTitle, 'PromptString', strPrompt, 'SelectionMode', 'single', 'ListSize', listSize);
 if isempty(iSelectedSubjectNumber)
-    strMessage = sprintf('No subject number selected.\nAborting function.');
-    disp(strMessage);
+    fprintf('No subject number selected.\nAborting function.\n');
     return
 end
 subjectInformation.strSubjectNumber = aStrSubjectNumber{iSelectedSubjectNumber};
