@@ -53,7 +53,7 @@ parametersProjectFiles.bCreateProjectFiles                          = parameters
 parametersProjectFiles.bCompleteTransferBeforeProjectFileCreation   = parametersFileTransfer.bCompleteTransferBeforeProjectFileCreation;
 %}
 
-%%{
+%{
 %%% REMOVE
 %%% CHANGE LOCATION OF DATA FOLDER
 folderDefinition.dicomFileTransferFromScanner = 'D:\Daten\ATWM1\Archive_DICOM_Files\Michael_Schaum\OriginalDatasets\';
@@ -83,10 +83,10 @@ for cs = 1:nSubjects
     end
     
     %%{
-    %try
+    try
         % Transfer files
         executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
-        %{
+        playSuccessToneATWM1;
     catch
         fprintf('Error while transferring files for subject %s!\nSkipping subject!\n\n', strSubject);
         continue
@@ -215,7 +215,7 @@ else
     % Special case of more than 1 folder for selected subject
     bInvalidFolderSelected = true;
     while bInvalidFolderSelected
-        startFolder = strcat(dicomFileTransferFromScanner);
+        startFolder = strcat(folderDefinition.dicomFileTransferFromScanner);
         strTitle = sprintf('Multiple folders exist for subject %s. Please select folder.', strSubject);
         strFolderOriginalDicomFilesSubject = uigetdir(startFolder, strTitle);
         if ~isempty(find(strfind(strFolderOriginalDicomFilesSubject, strSubject), 1))
@@ -232,8 +232,7 @@ else
 
                 otherwise
                     bAbort = true;
-                    strMessage = sprintf('Function aborted by user.');
-                    disp(strMessage);
+                    fprintf('Function aborted by user.'\n);
             end
             if bAbort == true
                 bInvalidFolderSelected = false;
@@ -243,8 +242,7 @@ else
     end
 end
 if bSubjectFolderFound
-    strMessage = sprintf('Folder containing DICOM files found for subject %s!\n', strSubject);
-    disp(strMessage);
+    fprintf('Folder containing DICOM files found for subject %s!\n\n', strSubject);
 end
 
 end
@@ -259,6 +257,7 @@ dicomFileTransferFromScanner = folderDefinition.dicomFileTransferFromScanner;
 strucFolderContentTransferFromScanner = dir(dicomFileTransferFromScanner);
 strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
 nrOfSubjFolders = 0;
+aStrFolderOriginalDicomFilesSubject = {};
 for ccont = 1:numel(strucFolderContentTransferFromScanner)
     strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
     strPathSubfolder = strcat(dicomFileTransferFromScanner, strFolderContent);
@@ -515,11 +514,9 @@ strPathZipFileServerArchiveDicomFilesSubject    = fullfile(strFolderServerArchiv
 if bDicomLocalTransfer == true && bLogfilesLocalTransfer == true && bParametersFileLocalTransfer == true
     fprintf('Creating file %s\n\n', strPathZipFileLocalArchiveDicomFilesSubject);
     aStrZippedFilesLocal    = zip(strPathZipFileLocalArchiveDicomFilesSubject, strFolderLocalArchiveDicomFilesSubject);
-    strMessage = sprintf('MRI session files successfully stored in file %s', strPathZipFileLocalArchiveDicomFilesSubject); 
-    disp(strMessage);
+    strMessage = sprintf('MRI session files successfully stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject); 
 else
-    strMessage = sprintf('MRI session files were not stored in file %s', strPathZipFileLocalArchiveDicomFilesSubject);
-    disp(strMessage);
+    strMessage = sprintf('MRI session files were not stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject);
 end
 
 % Copy local zip file to server archive folder
@@ -527,14 +524,11 @@ if parametersFileTransfer.bArchiveFilesOnServer
     if bDicomServerTransfer == true && bLogfilesServerTransfer == true && bParametersFileServerTransfer == true
         success = copyfile(strPathZipFileLocalArchiveDicomFilesSubject, strPathZipFileServerArchiveDicomFilesSubject);
         if success
-            strMessage = sprintf('MRI session files successfully stored in file %s', strPathZipFileServerArchiveDicomFilesSubject);
-            disp(strMessage);
+            fprintf('MRI session files successfully stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
         else
-            strMessage = sprintf('MRI session files were not stored in file %s', strPathZipFileServerArchiveDicomFilesSubject);
-            disp(strMessage);
+            fprintf('MRI session files were not stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
         end
     end
 end
     
 end
-

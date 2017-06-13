@@ -9,16 +9,12 @@ global strSubject
 
 iStudy = 'ATWM1';
 
-folderDefinition            = eval(['folderDefinition', iStudy]);
-parametersStudy             = eval(['parametersStudy', iStudy]);
-parametersGroups            = eval(['parametersGroups', iStudy]);
-%parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
-%parametersDataSubFolders    = eval(['parametersDataSubFolders', iStudy]);
-parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
-parametersNiftiExport       = eval(['parametersNiftiExport', iStudy]);
-
-parametersStructuralMriSequence         = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-parametersPreprocessingStructuralMri    = eval(['parametersPreprocessingStructuralMri', iStudy]);
+folderDefinition                = eval(['folderDefinition', iStudy]);
+parametersStudy                 = eval(['parametersStudy', iStudy]);
+parametersGroups                = eval(['parametersGroups', iStudy]);
+parametersProjectFiles          = eval(['parametersProjectFiles', iStudy]);
+parametersNiftiExport           = eval(['parametersNiftiExport', iStudy]);
+parametersBrainNormalisation    = eval(['parametersBrainNormalisation', iStudy]);
 
 hFunction = str2func(sprintf('addServerFolderDefinitions%s', iStudy));
 folderDefinition = feval(hFunction, folderDefinition);
@@ -37,13 +33,13 @@ if bAbort == true
     return
 end
 
-fprintf('Creating merged VMR(s) and NIFTI(s) %s_%s\n\n', parametersStudy.strMegCoregistration, parametersPreprocessingStructuralMri.strIntensityInhomogeneityCorrection);
+fprintf('Creating merged VMR(s) and NIFTI(s) %s_%s\n\n', parametersStudy.strMegCoregistration, parametersBrainNormalisation.strManualInhomogeneityCorrection);
 
 for cs = 1:nSubjects
     strSubject = aStrSubject{cs};
     folderDefinition.strCurrentSubjectDataFolder = strcat(folderDefinition.singleSubjectData, strGroup, '\', strSubject, '\');
     structProjectDataSubFolders = defineProjectDataSubFoldersATWM1(folderDefinition.strCurrentSubjectDataFolder);
-    [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedATWM1(parametersStudy, parametersProjectFiles, parametersStructuralMriSequence, parametersPreprocessingStructuralMri, structProjectDataSubFolders);
+    [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedForMegCoregATWM1(structProjectDataSubFolders);
     if exist(strPathVmrBrainIhc, 'file') && exist(strPathVmrMegCoreg, 'file')
         createMissingV16FilesATWM1(parametersProjectFiles, strPathVmrMegCoreg, strPathVmrBrainIhc)
         [strPathVmrMegCoregIhc, strPathNiftiMegCoregIhc] = createMegCoregIhcFilesATWM1(parametersProjectFiles, parametersNiftiExport, strPathVmrMegCoreg, strPathVmrBrainIhc, strPathVmrMegCoregIhc);
@@ -57,25 +53,29 @@ end
 end
 
 
-function [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedATWM1(parametersStudy, parametersProjectFiles, parametersStructuralMriSequence, parametersPreprocessingStructuralMri, structProjectDataSubFolders)
+function [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedForMegCoregATWM1(structProjectDataSubFolders)
+%function [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedForMegCoregATWM1(parametersStudy, parametersProjectFiles, parametersStructuralMriSequence, parametersPreprocessingStructuralMri, structProjectDataSubFolders)
 
 global iStudy
 global strSubject
 
+vmr = eval(['defineStandardVmrFileNames', iStudy]);
+
+
 %%% Define HIGH_RES_mIIHC.vmr
-parametersProjectFiles.strCurrentProject = sprintf('%s_%s', parametersStructuralMriSequence.strSequence , parametersStructuralMriSequence.strResolution);
-strVmrBrainIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersPreprocessingStructuralMri.strManualIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
+%parametersProjectFiles.strCurrentProject = sprintf('%s_%s', parametersStructuralMriSequence.strSequence , parametersStructuralMriSequence.strResolution);
+%strVmrBrainIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersPreprocessingStructuralMri.strManualIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
 %strVmrBrainIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersPreprocessingStructuralMri.strIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
-strPathVmrBrainIhc = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_HIGH_RES, strVmrBrainIhc);
+strPathVmrBrainIhc = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_HIGH_RES, vmr.strVmrIhc);
 
 %%% Define MEG_COREG.vmr
-strVmrMegCoreg = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersStudy.strMegCoregistration, parametersProjectFiles.extStructuralProject);
-strPathVmrMegCoreg = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_MEG_COREG, strVmrMegCoreg);
+%strVmrMegCoreg = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersStudy.strMegCoregistration, parametersProjectFiles.extStructuralProject);
+strPathVmrMegCoreg = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_MEG_COREG, vmr.strVmrMegCoreg);
 
 %%% Define merged MEG_COREG_mIIHC.vmr
-strVmrMegCoregIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersStudy.strMegCoregistration, '_', parametersPreprocessingStructuralMri.strManualIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
+%strVmrMegCoregIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersStudy.strMegCoregistration, '_', parametersPreprocessingStructuralMri.strManualIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
 %strVmrMegCoregIhc = strcat(strSubject, '_', iStudy, '_', parametersProjectFiles.strCurrentProject, '_', parametersStudy.strMegCoregistration, '_', parametersPreprocessingStructuralMri.strIntensityInhomogeneityCorrection, parametersProjectFiles.extStructuralProject);
-strPathVmrMegCoregIhc = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_MEG_COREG, strVmrMegCoregIhc);
+strPathVmrMegCoregIhc = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_MEG_COREG, vmr.strVmrMegCoregIhc);
 
 
 end
@@ -179,85 +179,6 @@ if ~exist(strPathVmrMegCoreg, 'file')
     fprintf('%s not found!\n', strPathVmrMegCoreg);
 end
 fprintf('Could not create %s!\n\n', strPathVmrMegCoregIhc);
-
-
-end
-
-
-function TESTcreateMergedVmrMegCoregIhcATWM1()
-
-clear all
-clc
-
-global iStudy
-global strGroup
-global strSubject
-
-iStudy = 'ATWM1';
-
-folderDefinition            = eval(['folderDefinition', iStudy]);
-parametersStudy             = eval(['parametersStudy', iStudy]);
-parametersGroups            = eval(['parametersGroups', iStudy]);
-parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
-parametersDataSubFolders    = eval(['parametersDataSubFolders', iStudy]);
-parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
-parametersNiftiExport       = eval(['parametersNiftiExport', iStudy]);
-
-parametersStructuralMriSequence         = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-parametersPreprocessingStructuralMri    = eval(['parametersPreprocessingStructuralMri', iStudy]);
-
-hFunction = str2func(sprintf('addServerFolderDefinitions%s', iStudy));
-folderDefinition = feval(hFunction, folderDefinition);
-
-%%% Check server access
-bAllFoldersCanBeAccessed = checkLocalComputerFolderAccessATWM1(folderDefinition);
-if bAllFoldersCanBeAccessed == false
-    return
-end
-
-%%{
-%%% REMOVE
-aStrSubject = {
-    'DJ32GUZ'
-    %'NT90DXA'
-    %'YK95HMC'
-    };
-strGroup = 'CONT';
-nSubjects = numel(aStrSubject);
-%}
-%%% REINSTATE
-%{
-%%% Select subjects
-aSubject = processSubjectArrayATWM1_IMAGING;
-strDialogSelectionModeSubject = 'multiple';
-%iSession = 1;
-
-[strGroup, ~, aStrSubject, nSubjects, bAbort] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject, strDialogSelectionModeSubject);
-if bAbort == true
-    return
-end
-%}
-fprintf('Creating merged VMR(s) and NIFTI(s) %s_%s\n\n', parametersStudy.strMegCoregistration, parametersPreprocessingStructuralMri.strIntensityInhomogeneityCorrection);
-
-for cs = 1:nSubjects
-    strSubject = aStrSubject{cs};
-    folderDefinition.strCurrentSubjectDataFolder = strcat(folderDefinition.singleSubjectData, strGroup, '\', strSubject, '\');
-    %%{
-    %%% REMOVE
-    strPath = 'D:\Daten\ATWM1\Single_Subject_Data\zzzTEST\_TEST\';
-    folderDefinition.strCurrentSubjectDataFolder = strcat(strPath, strSubject, '\');
-    %%%
-    %}
-    structProjectDataSubFolders = defineProjectDataSubFoldersATWM1(folderDefinition.strCurrentSubjectDataFolder);
-    [strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc] = defineVmrFilesToBeMergedATWM1(parametersStudy, parametersProjectFiles, parametersStructuralMriSequence, parametersPreprocessingStructuralMri, structProjectDataSubFolders);
-    if exist(strPathVmrBrainIhc, 'file') && exist(strPathVmrMegCoreg, 'file')
-        createMissingV16FilesATWM1(parametersProjectFiles, strPathVmrMegCoreg, strPathVmrBrainIhc)
-        [strPathVmrMegCoregIhc, strPathNiftiMegCoregIhc] = createMegCoregIhcFilesATWM1(parametersProjectFiles, parametersNiftiExport, strPathVmrMegCoreg, strPathVmrBrainIhc, strPathVmrMegCoregIhc);
-        [bFileTransferSuccessful] = transferNiftiMegCoregIhcToServerATWM1(folderDefinition, strPathNiftiMegCoregIhc);
-    else
-        displayMissingVmrFilesForMergingATWM1(strPathVmrBrainIhc, strPathVmrMegCoreg, strPathVmrMegCoregIhc);
-    end
-end
 
 
 end

@@ -22,7 +22,9 @@ while bMatlabCommandWindowRunning == true
             currentDelay = currentDelay + parametersProcessDuration.delayBeforeUpdate;
             if currentDelay >= maximumDelay || ~parametersComProcess.bBrainVoyagerRunningAsCom
                 for cmcwp = 1:nMatlabCommandWindowsProcesses
-                    [~, ~] = system(['taskkill /f /pid ' matlabCommandWindowProcessId.strNewProcessId{cmcwp}]);
+                    strCommand = sprintf('taskkill /f /pid %s', matlabCommandWindowProcessId.strNewProcessId{cmcwp});
+                    [~, ~] = system(strCommand);
+                    %[~, ~] = system(['taskkill /f /pid ' matlabCommandWindowProcessId.strNewProcessId{cmcwp}]);
                 end
                 bMatlabCommandWindowRunning = false;
             end

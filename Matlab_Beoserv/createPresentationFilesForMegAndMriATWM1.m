@@ -33,11 +33,11 @@ parametersParadigm  = parametersParadigm_WM_IMAGING_ATWM1;
 parametersStudy     = parametersStudyATWM1;
 
 %% Select/prepare parameters and folder
-[strGroup, strSubjectID, strPermutationType, strLeftRight] = selectParametersForPresentationScenarioFileCreationATWM1(parametersGroups, aSubject, parametersParadigm);
-for c=1:10
-    fprintf('REMOVE RETURN\n');
+[strGroup, strSubjectID, strPermutationType, strLeftRight, bAbort] = selectParametersForPresentationScenarioFileCreationATWM1(parametersGroups, aSubject, parametersParadigm);
+if bAbort
+    return
 end
-return
+
 [strGroupPresentationFilesFolder, strSubjectPresentationFilesFolder, bAbort] = prepareSubjectFolderForPresentationScenarioFilesATMW1(strRootFolder, strGroup, strSubjectID);
 
 if bAbort == true
@@ -76,6 +76,7 @@ aStrStudyParametersFiles = {
     sprintf('parametersGroups%s.m', strStudy)
     sprintf('parametersParadigm_WM_IMAGING_%s.m', strStudy)
     sprintf('parametersStudy%s.m', strStudy)
+    sprintf('parametersDialog%s.m', strStudy)
     };
 
 for cf = 1:numel(aStrStudyParametersFiles)
@@ -97,14 +98,13 @@ bAbort = false;
 end
 
 
-function [strGroup, strSubjectID, strPermutationType, strLeftRight] = selectParametersForPresentationScenarioFileCreationATWM1(parametersGroups, aSubject, parametersParadigm);
+function [strGroup, strSubjectID, strPermutationType, strLeftRight, bAbort] = selectParametersForPresentationScenarioFileCreationATWM1(parametersGroups, aSubject, parametersParadigm);
 
 global strStudy
 
 strDialogSelectionMode = 'single';
 
 bParametersCorrect = false;
-bAbort = false;
 
 while ~bParametersCorrect
     
@@ -137,17 +137,7 @@ while ~bParametersCorrect
         error('\n\nNo subject selected!\n');
     end
     strSubjectID = aSubject.ATWM1_IMAGING.Groups.(genvarname(strGroup)){iSubject};
-    
-    %% Select response button configuration (left/right or right/left)
-    strPrompt = 'Please select the response button configuration for the subject';
-    strTitle = 'Response button configuration';
-    vListSize = [300, 100];
-    [iResponseButtonConfiguration ] = listdlg('ListString', parametersParadigm.aStrResponseButtonConfiguration, 'PromptString', strPrompt, 'Name', strTitle, 'ListSize', vListSize, 'SelectionMode', strDialogSelectionMode);
-    if isempty(iResponseButtonConfiguration)
-        error('\n\nNo response button configuration selected!\n');
-    end
-    strLeftRight = parametersParadigm.aStrResponseButtonConfiguration{iResponseButtonConfiguration};
-    
+  
     %% Select permutation
     strPrompt = 'Please select the permutation order';
     strTitle = 'Permutation order';
@@ -161,9 +151,21 @@ while ~bParametersCorrect
     end
     strPermutationType = parametersParadigm.aStrPermutations{iPermutation};
     
-    [bParametersCorrect, bAbort] = verifyParametersForPresentationScenarioFileCreationATWM1(strGroup, strSubjectID, strPermutationType, strLeftRight)
+    %% Select response button configuration (left/right or right/left)
+    strPrompt = 'Please select the response button configuration for the subject';
+    strTitle = 'Response button configuration';
+    vListSize = [300, 100];
+    [iResponseButtonConfiguration ] = listdlg('ListString', parametersParadigm.aStrResponseButtonConfiguration, 'PromptString', strPrompt, 'Name', strTitle, 'ListSize', vListSize, 'SelectionMode', strDialogSelectionMode);
+    if isempty(iResponseButtonConfiguration)
+        error('\n\nNo response button configuration selected!\n');
+    end
+    strLeftRight = parametersParadigm.aStrResponseButtonConfiguration{iResponseButtonConfiguration};
+ 
+    %% Verify
+    [bParametersCorrect, bAbort] = verifyParametersForPresentationScenarioFileCreationATWM1(strGroup, strSubjectID, strPermutationType, strLeftRight);
     if bAbort
-        error('Parameter selection aborted by user!\n');
+        sprintf('Parameter selection aborted by user!\n');
+        break
     end
 end
 
@@ -177,19 +179,17 @@ global strStudy
 bAbort = false;
 
 %%% Load text and dialog elements
-[textElements, parametersDialog] = eval(['defineDialogTextElements', strStudy]);
+[parametersDialog] = eval(['parametersDialog', strStudy]);
 
 %%% Display subject information and subject code for final check
 strTitle = 'Verify parameters for Presentation scenario file creation';
 
-%strParametersPresFileCreation = sprintf('%s%s%s\n\n%s%s%s\n\n%s%s%s\n\n%s%s%s\n\n%s%s%s', parametersDialog.strFirstName, parametersDialog.strEmpty, subjectInformation.strFirstName, parametersDialog.strFamilyName, parametersDialog.strEmpty, subjectInformation.strFamilyName, parametersDialog.strDateOfBirth, parametersDialog.strEmpty, subjectInformation.strDateOfBirth, parametersDialog.strGroup, parametersDialog.strEmpty, subjectInformation.strSelectedGroup, parametersDialog.strDateOfStudyEnrollment, subjectInformation.strDateOfStudyEnrollment);
-%parametersDialog.strFamilyName, parametersDialog.strEmpty, subjectInformation.strFamilyName, parametersDialog.strDateOfBirth, parametersDialog.strEmpty, subjectInformation.strDateOfBirth, parametersDialog.strGroup, parametersDialog.strEmpty, subjectInformation.strSelectedGroup, parametersDialog.strDateOfStudyEnrollment, subjectInformation.strDateOfStudyEnrollment);
 strParametersPresFileCreation1 = sprintf('%s%s%s\n\n', parametersDialog.strGroup, parametersDialog.strEmpty, strGroup);
 strParametersPresFileCreation2 = sprintf('%s%s%s\n\n', parametersDialog.strSubjectID, parametersDialog.strEmpty, strSubjectID);
 strParametersPresFileCreation3 = sprintf('%s%s%s\n\n', parametersDialog.strConditionPermutation, parametersDialog.strEmpty, strPermutationType);
 strParametersPresFileCreation4 = sprintf('%s%s%s\n\n', parametersDialog.strResponseKeyConfig, parametersDialog.strEmpty, strLeftRight);
 
-strParametersPresFileCreation = strcat(strParametersPresFileCreation1, strParametersPresFileCreation2, strParametersPresFileCreation3, strParametersPresFileCreation4);
+strParametersPresFileCreation = [strParametersPresFileCreation1, strParametersPresFileCreation2, strParametersPresFileCreation3, strParametersPresFileCreation4];
 
 strButton1 = sprintf('%sCorrect%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
 strButton2 = sprintf('%sIncorrect%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
@@ -198,15 +198,17 @@ default = strButton3;
 choice = questdlg(strParametersPresFileCreation, strTitle, strButton1, strButton2, strButton3, default);
 if isempty(choice)
     fprintf('Subject information not verified!\nAborting function.\n');
-    %disp(strMessage);
-    %bSubjectInformationCorrect = false;
-    %subjectInformation = {};
     return
 end
 
 switch choice
     case strButton1
         bParametersCorrect = true;
+        %%% Print verified parameters
+        fprintf(strParametersPresFileCreation1);
+        fprintf(strParametersPresFileCreation2);
+        fprintf(strParametersPresFileCreation3);
+        fprintf(strParametersPresFileCreation4);
     case strButton2
         bParametersCorrect = false;
     case strButton3
@@ -280,3 +282,5 @@ pathZipFile = fullfile(strGroupPresentationFilesFolder, strZipFile);
 zip(pathZipFile, strSubjectPresentationFilesFolder);
 
 end
+
+

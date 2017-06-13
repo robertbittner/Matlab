@@ -1,4 +1,4 @@
-function computeBehavioralDataATWM1_LOC ();
+function computeBehavioralDataATWM1_LOC();
 % ATWM1
 % Analyze presentation logfiles for localizer experiment
 

@@ -1,7 +1,7 @@
-function [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1()
-%%% © 2015 Robert Bittner
-%%% Written for BrainVoyagerQX 2.8.4
-%%% This function calls BrainVoyagerQX using the COM interface and checks
+function [bv, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1()
+%%% © 2017 Robert Bittner
+%%% Written for BrainVoyager 20.4
+%%% This function calls BrainVoyager 20 using the COM interface and checks
 %%% whether the currently installed version is compatible with the study
 %%% scripts
 
@@ -10,33 +10,35 @@ global iStudy
 parametersBrainVoyager = eval(['parametersBrainVoyager', iStudy]);
 
 bIncompatibleBrainVoyagerVersion = false;
-bvqx = actxserver(parametersBrainVoyager.strBrainVoyagerProgId);
+bv = actxserver(parametersBrainVoyager.strBrainVoyagerProgId);
 
-if bvqx.VersionMajor < parametersBrainVoyager.iVersionMajor
+if bv.VersionMajor < parametersBrainVoyager.iVersionMajor
     bIncompatibleBrainVoyagerVersion = true;
-elseif bvqx.VersionMinor < parametersBrainVoyager.iVersionMinor
+elseif bv.VersionMinor < parametersBrainVoyager.iVersionMinor
     bIncompatibleBrainVoyagerVersion = true;
-elseif bvqx.BuildNumber < parametersBrainVoyager.iBuildNumber
+elseif bv.VersionPatch < parametersBrainVoyager.iVersionPatch
     bIncompatibleBrainVoyagerVersion = true;
-elseif bvqx.Is64Bits ~= parametersBrainVoyager.bIs64Bits
+elseif bv.BuildNumber < parametersBrainVoyager.iBuildNumber
+    bIncompatibleBrainVoyagerVersion = true;
+elseif bv.Is64Bits ~= parametersBrainVoyager.bIs64Bits
     bIncompatibleBrainVoyagerVersion = true;
 end
 
-if bvqx.Is64Bits == true
+if bv.Is64Bits == true
     strBit = parametersBrainVoyager.str64Bits;
 else
     strBit = parametersBrainVoyager.str32Bits;
 end
-strBrainVoyagerVersion = sprintf('Version %i.%i - Build %i - %s', bvqx.VersionMajor, bvqx.VersionMinor, bvqx.BuildNumber, strBit);
+strBrainVoyagerVersion = sprintf('%i.%i.%i - Build %i - %s', bv.VersionMajor, bv.VersionMinor, bv.VersionPatch, bv.BuildNumber, strBit);
 
 if bIncompatibleBrainVoyagerVersion
     parametersComProcess = [];
-    bvqx.Exit;
-    fprintf('\nERROR:\nCurrently used version of BrainVoyager (%s)\nis incompatible with scripts of study %s!\nAborting function.\n\n', strBrainVoyagerVersion, iStudy);
+    bv.Exit;
+    fprintf('\nERROR:\nCurrently used version of %s %s\nis incompatible with scripts of study %s!\nAborting function.\n\n', parametersBrainVoyager.strBrainVoyager, strBrainVoyagerVersion, iStudy);
     return
 else
+    fprintf('Running %s %s\n', parametersBrainVoyager.strBrainVoyager, strBrainVoyagerVersion);
     parametersComProcess = detectBrainVoyagerComProcessATWM1();
 end
-
 
 end

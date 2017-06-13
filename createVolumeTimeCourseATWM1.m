@@ -31,7 +31,7 @@ parametersTemporalHighPassFiltering = eval(['parametersTemporalHighPassFiltering
 parametersCoregistration            = eval(['parametersCoregistration', iStudy]);
 
 parametersStructuralMriSequenceHighRes      = eval(['parametersStructuralMriSequenceHighRes', iStudy]);
-parametersBrainNormalisationAndSegmentation = eval(['parametersBrainNormalisationAndSegmentation', iStudy]);
+parametersBrainNormalisation = eval(['parametersBrainNormalisation', iStudy]);
 parametersVolumeTimeCourse                  = eval(['parametersVolumeTimeCourse', iStudy]);
 
 [bAbort] = selectConfigurationForProjectFileProcessingATWM1();
@@ -69,8 +69,8 @@ for cs = 1:nSubjects
     end
     
     %%% Define VMR file for VTC file creation
-    strVmrBrainExtrFile = sprintf('%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisationAndSegmentation.strBrainExtraction, parametersProjectFiles.extStructuralProject);
-    strVmrInTalFile = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisationAndSegmentation.strBrainExtraction, parametersBrainNormalisationAndSegmentation.strTalairachTransformation, parametersProjectFiles.extStructuralProject);
+    strVmrBrainExtrFile = sprintf('%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisation.strBrainExtraction, parametersProjectFiles.extStructuralProject);
+    strVmrInTalFile = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisation.strBrainExtraction, parametersBrainNormalisation.strTalairachTransformation, parametersProjectFiles.extStructuralProject);
     strPathVmrInTalFile = fullfile(structProjectDataSubFolders.strFolder_MPRAGE_HIGH_RES, strVmrInTalFile);
 
     %%% create VTC files
@@ -100,8 +100,8 @@ for cs = 1:nSubjects
             strIntialAlignmentFile  = sprintf('%s-TO-%s_%s%s', parametersProjectFiles.strCurrentFmrFileFirstVolUndistort, strVmrBrainExtrFile, parametersCoregistration.strInitialAlignment, parametersProjectFiles.extTransformationFile)
             strFineAlignmentFile    = sprintf('%s-TO-%s_%s%s', parametersProjectFiles.strCurrentFmrFileFirstVolUndistort, strVmrBrainExtrFile, parametersCoregistration.strFineAlignment, parametersProjectFiles.extTransformationFile)
             
-            strAcpcFile             = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisationAndSegmentation.strBrainExtraction, parametersBrainNormalisationAndSegmentation.strAcpcTransformation, parametersProjectFiles.extTransformationFile)
-            strTalFile              = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisationAndSegmentation.strBrainExtraction, parametersBrainNormalisationAndSegmentation.strAcpcTransformation, parametersProjectFiles.extTalFile)
+            strAcpcFile             = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisation.strBrainExtraction, parametersBrainNormalisation.strAcpcTransformation, parametersProjectFiles.extTransformationFile)
+            strTalFile              = sprintf('%s_%s_%s_%s_%s_%s%s', strSubject, iStudy, parametersStructuralMriSequenceHighRes.strSequence, parametersStructuralMriSequenceHighRes.strResolution, parametersBrainNormalisation.strBrainExtraction, parametersBrainNormalisation.strAcpcTransformation, parametersProjectFiles.extTalFile)
             
             filesForVtcCreation.strPathFmrFile              = parametersProjectFiles.(matlab.lang.makeValidName(parametersProjectFiles.strFieldnamePathSelectedFmrType));
             filesForVtcCreation.strPathVtcFile              = parametersProjectFiles.(matlab.lang.makeValidName(parametersProjectFiles.strFieldnamePathSelectedVtcType));
@@ -130,10 +130,10 @@ for cs = 1:nSubjects
                 matlabCommandWindowProcessId = feval(hFunction, parametersComProcess, processDuration);
                 
                 %%% The files are opened in BrainVoyager and the VTCs are created.
-                vmr = bvqx.OpenDocument(strPathVmrInTalFile);
-                vmr.ExtendedTALSpaceForVTCCreation = parametersVolumeTimeCourse.extendedBoundingBox;
-                bVtcFileCreated = vmr.CreateVTCInTALSpace(filesForVtcCreation.strPathFmrFile, filesForVtcCreation.strPathIntialAlignmentFile, filesForVtcCreation.strPathFineAlignmentFile, filesForVtcCreation.strPathAcpcFile, filesForVtcCreation.strPathTalFile, filesForVtcCreation.strPathVtcFile, parametersVolumeTimeCourse.dataType, parametersVolumeTimeCourse.resolution, parametersVolumeTimeCourse.interpolationMethod, parametersVolumeTimeCourse.threshold);
-                vmr.Close();
+                docVmr = bvqx.OpenDocument(strPathVmrInTalFile);
+                docVmr.ExtendedTALSpaceForVTCCreation = parametersVolumeTimeCourse.extendedBoundingBox;
+                bVtcFileCreated = docVmr.CreateVTCInTALSpace(filesForVtcCreation.strPathFmrFile, filesForVtcCreation.strPathIntialAlignmentFile, filesForVtcCreation.strPathFineAlignmentFile, filesForVtcCreation.strPathAcpcFile, filesForVtcCreation.strPathTalFile, filesForVtcCreation.strPathVtcFile, parametersVolumeTimeCourse.dataType, parametersVolumeTimeCourse.resolution, parametersVolumeTimeCourse.interpolationMethod, parametersVolumeTimeCourse.threshold);
+                docVmr.Close();
                 
                 hFunction = str2func(sprintf('delayedTerminationOfMatlabCommandWindows%s', iStudy));
                 feval(hFunction, matlabCommandWindowProcessId, processDuration);
