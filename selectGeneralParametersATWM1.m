@@ -30,9 +30,9 @@ if ~bTestConfiguration
     if bAbort == true
         return
     end
-    
+    parametersProjectFiles = parametersProjectFiles
     %%% Determine session for each subject
-    if parametersProjectFiles.bProjectFileCreation || parametersProjectFiles.bTransferDicomFilesFirst
+    if parametersProjectFiles.bFileCreation || parametersProjectFiles.bTransferDicomFilesFirst
         [vSessionIndex, bAbort] = determineMriSessionATWM1(aStrSubject, nSubjects);
         if bAbort == true
             return

@@ -7,7 +7,8 @@ processDuration = parametersProcessDuration.fmrSpatialSmoothing;
 if exist(parametersProjectFiles.strPathCurrentFmrFileMotionCorr, 'file')
     %%% Check compatibility of the currently installed version of BrainVoyager
     %%% and run BrainVoyager as a COM object
-    hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
+    hFunction = str2func(sprintf('runBrainVoyagerQX%s', iStudy));
+    %hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
     [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
     if bIncompatibleBrainVoyagerVersion == true
         bPreprocessingSuccessful = false;

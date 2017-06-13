@@ -7,11 +7,6 @@ if isempty(nrOfSessions)
     nrOfSessions = 1;
 end
 
-%{
-strSubjectDataFolder = 'D:\TE12\';
-iStudy = 'ATWM1';
-nrOfSessions = 1;
-%}
 parametersDataSubFolders         = eval(['parametersDataSubFolders', iStudy]);
 
 aStrFieldnames = fieldnames(parametersDataSubFolders);
@@ -45,6 +40,7 @@ for cstr = iDataSubFolderTypes
     for cssf = iDataSubFolderTypes
         strSubSubFolder = structDataSubSubFolder.(matlab.lang.makeValidName(aStrSubFolderFieldnames{cssf}));
         structProjectDataSubFolders.(matlab.lang.makeValidName(aStrSubFolderFieldnames{cssf})) = strcat(strParentFolder, strSubSubFolder, '\');
+        structProjectDataSubFolders.aStrProjectDataSubFolder = [structProjectDataSubFolders.aStrProjectDataSubFolder, structProjectDataSubFolders.(matlab.lang.makeValidName(aStrSubFolderFieldnames{cssf}))];
         nDataSubFolder = nDataSubFolder + 1;
     end
 end

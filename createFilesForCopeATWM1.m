@@ -19,7 +19,8 @@ folder = 'D:\Daten\ATWM1\Single_Subject_Data\Pilot_Scans\ERRA90\';
 
 %%% Check compatibility of currently installed version of BrainVoyager and
 %%% start software
-[bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1();
+[bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerQXATWM1
+%[bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrainVoyagerATWM1();
 if bIncompatibleBrainVoyagerVersion == true
     return
 end

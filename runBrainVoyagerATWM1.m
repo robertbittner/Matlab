@@ -6,8 +6,8 @@ function [bv, parametersComProcess, bIncompatibleBrainVoyagerVersion] = runBrain
 %%% scripts
 
 global iStudy
-
-parametersBrainVoyager = eval(['parametersBrainVoyager', iStudy]);
+iStudy = 'ATWM1'
+parametersBrainVoyager = eval(['parametersBrainVoyager', iStudy])
 
 bIncompatibleBrainVoyagerVersion = false;
 bv = actxserver(parametersBrainVoyager.strBrainVoyagerProgId);
