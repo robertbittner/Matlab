@@ -9,7 +9,7 @@ if exist(parametersProjectFiles.strPathCurrentFmrFileSliceScanTimeCorr, 'file')
     %%% and run BrainVoyager as a COM object
     hFunction = str2func(sprintf('runBrainVoyagerQX%s', iStudy));
     %hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
-    [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
+    [bvqx, parametersComProcess, parametersBrainVoyager, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
     if bIncompatibleBrainVoyagerVersion == true
         bPreprocessingSuccessful = false;
         return

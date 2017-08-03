@@ -5,6 +5,7 @@ global strSubject
 
 parametersDicomFiles = eval(['parametersDicomFiles' iStudy]);
 
+%{
 %%% Define unrenamed DICOM files
 parametersMriSession.nDicomFiles = 0;
 for cr = 1:parametersMriSession.nTotalRuns
@@ -17,6 +18,9 @@ for cr = 1:parametersMriSession.nTotalRuns
     end
 end
 parametersMriSession.nrOfUnrenamedDicomFiles = parametersMriSession.nDicomFiles;
+%}
+[parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles] = defineUnrenamedDicomFileNamesATWM1(parametersMriSession, parametersDicomFiles, strPathOriginalDicomFiles);
+
 %%% Test, whether unrenamed DICOM files are complete
 nrOfMissingDicomFiles = 0;
 bDicomFilesComplete = true;
@@ -40,3 +44,4 @@ else
 end
 
 end
+

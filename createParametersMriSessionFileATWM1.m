@@ -5,8 +5,15 @@ clc
 global iStudy
 iStudy = 'ATWM1';
 
+%{
+parametersNetwork = parametersNetworkATWM1
+parametersNetwork.strCurrentComputer = 'PSYCH - Windows PC';
+%}
+
 %% Determine current computer and load folder definitions
-parametersNetwork = determineCurrentComputerATWM1;
+%%{
+parametersNetwork = determineCurrentComputerATWM1
+%}
 folderDefinition = loadFolderDefinitionATWM1(parametersNetwork);
 
 %% Check server access
@@ -18,10 +25,11 @@ hFunction = str2func(sprintf('addServerFolderDefinitions%s', iStudy));
 folderDefinition = feval(hFunction, folderDefinition);
 
 %% Load parameters
+parametersStudy                 = eval(['parametersStudy', iStudy]);
 parametersMriSessionStandard 	= eval(['parametersMriSessionStandard', iStudy]);
 parametersGroups                = eval(['parametersGroups', iStudy]);
 
-
+%%{
 %% Determine current subject
 aSubject = processSubjectArrayATWM1_IMAGING;
 strDialogSelectionModeSubject = 'single';
@@ -29,27 +37,38 @@ strDialogSelectionModeSubject = 'single';
 if bAbort == true
     return
 end
-
+%}
+%{
+%%% REMOVE
+parametersProjectFiles = parametersProjectFilesATWM1
+[folderDefinition, parametersProjectFiles, aStrSubject, nSubjects, vSessionIndex, bAbort] = setTestConfigurationParametersATWM1(folderDefinition, parametersGroups, parametersProjectFiles);
+strSubject = aStrSubject{1}
+iSession = 1;
+%%% REMOVE
+%}
+%%{
 %% Determine whether standard parameters need to be changed
 [bUseStandardParameters, bAbort] = selectParameterModificationOptionsATWM1;
 if bAbort == true
     return
 end
-
+%}
+%bUseStandardParameters = false;
 if bUseStandardParameters
     [iSession, parametersMriCurrentSession, bAbort] = setParametersCurrentMriSessionToStandardValuesATWM1(parametersMriSessionStandard);
     if bAbort == true
         return
     end
 else
+    %%{
     %% Determine session of current subject
     [iSession, bAbort] = determineMriSessionATWM1(aStrSubject, nSubjects);
     if bAbort == true
         return
     end
-    
+    %}
     %% Manual editing of MriSessionParameters
-    [parametersMriCurrentSession, bAbort] = enterParametersCurrentMriSessionATWM1(parametersMriSessionStandard);
+    [parametersMriCurrentSession, bAbort] = enterParametersCurrentMriSessionATWM1(parametersStudy, parametersMriSessionStandard);
     if bAbort == true
         return
     end
@@ -112,9 +131,9 @@ aStrFileIndexFieldnames = aStrFieldnames(indexFileIndex);
 % Enter standard values into allFileIndices field
 counterFileIndices = 0;
 for cfn = 1:numel(aStrFileIndexFieldnames)
-    for cfne = 1:numel(parametersMriCurrentSession.(genvarname(aStrFileIndexFieldnames{cfn})))
+    for cfne = 1:numel(parametersMriCurrentSession.(matlab.lang.makeValidName(aStrFileIndexFieldnames{cfn})))
         counterFileIndices = counterFileIndices + 1;
-        parametersMriCurrentSession.allFileIndices(counterFileIndices) = parametersMriCurrentSession.(genvarname(aStrFileIndexFieldnames{cfn}))(cfne);
+        parametersMriCurrentSession.allFileIndices(counterFileIndices) = parametersMriCurrentSession.(matlab.lang.makeValidName(aStrFileIndexFieldnames{cfn}))(cfne);
     end
 end
 
@@ -143,7 +162,7 @@ parametersMriCurrentSession.bVerified = true;
 end
 
 
-function [parametersMriCurrentSession, bAbort] = enterParametersCurrentMriSessionATWM1(parametersMriSessionStandard)
+function [parametersMriCurrentSession, bAbort] = enterParametersCurrentMriSessionATWM1(parametersStudy, parametersMriSessionStandard)
 
 bAbort = false;
 
@@ -162,6 +181,10 @@ aStrAnswers = {};
 bParametersCorrect = false;
 while bParametersCorrect == false
     if isempty(aStrAnswers)
+        [parametersMriSessionStandard, parametersMriCurrentSession, bAbort] = enterNumberOfAdditionalLocalizersATWM1(parametersStudy, parametersMriSessionStandard, parametersMriCurrentSession, bAbort);
+        if bAbort == true
+            return
+        end
         [parametersMriSessionStandard, parametersMriCurrentSession, bAbort] = enterNumberOfInvalidRunsATWM1(parametersMriSessionStandard, parametersMriCurrentSession, bAbort);
         if bAbort == true
             return
@@ -171,7 +194,7 @@ while bParametersCorrect == false
             return
         end
     end
-
+    
     [parametersMriCurrentSession, aStrFileIndexDescription, bAbort] = displayFileIndicesForCorrectionATWM1(parametersMriSessionStandard, parametersMriCurrentSession, aStrFileIndexFieldnames);
     if bAbort == true
         return
@@ -189,6 +212,43 @@ parametersMriCurrentSession.bVerified = true;
 
 end
 
+
+function [parametersMriSessionStandard, parametersMriCurrentSession, bAbort] = enterNumberOfAdditionalLocalizersATWM1(parametersStudy, parametersMriSessionStandard, parametersMriCurrentSession, bAbort)
+%% Enter the number of additional anatomical localizers
+bParametersEntered = false;
+while ~bParametersEntered
+    strPrompt = sprintf('Please enter number of additional anatomical localizers.');
+    strTitle = sprintf('Number of additional anatomical localizers');
+    nrOfLines = 1;
+    strDefaultAnswer = {'0'};
+    aStrAnswer = inputdlg(strPrompt, strTitle, nrOfLines, strDefaultAnswer);
+    nrOfAdditionalLocalizers = str2double(aStrAnswer{1});
+    if ~isempty(aStrAnswer) && mod(nrOfAdditionalLocalizers, 1) == 0
+        bParametersEntered = true;
+        if nrOfAdditionalLocalizers > 0
+            parametersMriCurrentSession.bAdditionalLocalizer    = true;
+            parametersMriCurrentSession.nAnatomicalLocalizers   = parametersMriSessionStandard.nAnatomicalLocalizers + nrOfAdditionalLocalizers;
+          
+            for cr = 1:parametersMriCurrentSession.nAnatomicalLocalizers
+                parametersMriSessionStandard.fileIndexAnatomicalLocalizer(cr)   = NaN;
+                parametersMriCurrentSession.fileIndexAnatomicalLocalizer(cr)    = NaN;
+                parametersMriSessionStandard.strDescription.fileIndexAnatomicalLocalizer{cr} = sprintf('%s_run_%i', parametersStudy.strFullAnatomicalLocalizer, cr);
+            end
+        end
+    else
+        bAbort = openInvalidParametersDialogATWM1;
+    end
+    if bAbort == true
+        break
+    end
+end
+if bAbort == true
+    return
+end
+
+
+
+end
 
 function [parametersMriSessionStandard, parametersMriCurrentSession, bAbort] = enterNumberOfInvalidRunsATWM1(parametersMriSessionStandard, parametersMriCurrentSession, bAbort)
 %% Enter the number of invalid runs
@@ -229,17 +289,17 @@ for cfi = 1:numel(aStrFileIndexFieldnames)
     strFieldname = aStrFileIndexFieldnames{cfi};
     % Special case: file indices for invalid runs, which might be empty
     strInvalidRuns = 'InvalidRuns';
-    if ~isempty(strfind(strFieldname, strInvalidRuns)) && parametersMriCurrentSession.nInvalidRuns == 0
+    if contains(strFieldname, strInvalidRuns) && parametersMriCurrentSession.nInvalidRuns == 0
         continue
     end
     bParametersEntered = false;
     while ~bParametersEntered
         aStrPrompt = {};
         aStrDefaultAnswer = {};
-        for cr = 1:numel(parametersMriSessionStandard.(genvarname(strFieldname)))
-            strPrompt = sprintf('Please enter filex index for %s', parametersMriSessionStandard.strDescription.(genvarname(strFieldname)){cr});
+        for cr = 1:numel(parametersMriSessionStandard.(matlab.lang.makeValidName(strFieldname)))
+            strPrompt = sprintf('Please enter filex index for %s', parametersMriSessionStandard.strDescription.(matlab.lang.makeValidName(strFieldname)){cr});
             aStrPrompt = [aStrPrompt, strPrompt];
-            strAnswer = sprintf('%i', parametersMriSessionStandard.(genvarname(strFieldname))(cr));
+            strAnswer = sprintf('%i', parametersMriSessionStandard.(matlab.lang.makeValidName(strFieldname))(cr));
             aStrDefaultAnswer = [aStrDefaultAnswer, strAnswer];
         end
         strTitle = 'Input';
@@ -276,7 +336,7 @@ for ca = 1:numel(aStrAnswer)
     vAnswer(ca) = str2double(aStrAnswer{ca});
 end
 vAnswer(vAnswer == 0) = NaN;
-parametersMriCurrentSession.(genvarname(strFieldname)) = vAnswer;
+parametersMriCurrentSession.(matlab.lang.makeValidName(strFieldname)) = vAnswer;
 
 parametersMriCurrentSession.allFileIndices = [parametersMriCurrentSession.allFileIndices, vAnswer];
 
@@ -356,13 +416,11 @@ if ~isempty(choice)
             bParametersCorrect = true;
         case strOption3
             bAbort = true;
-            strMessage = sprintf('Incorrect file indices entered.\nAborting function.');
-            disp(strMessage);
+            fprintf('Incorrect file indices entered.\nAborting function.\n');
     end
 else
     bAbort = true;
-    strMessage = sprintf('Incorrect file indices entered.\nAborting function.');
-    disp(strMessage);
+    fprintf('Incorrect file indices entered.\nAborting function.\n');
 end
 
 
@@ -377,7 +435,7 @@ while bInvalidEntryDetected
     counterFileIndex = 0;
     for cfi = 1:numel(aStrFileIndexFieldnames)
         strFieldname = aStrFileIndexFieldnames{cfi};
-        for cr = 1:numel(parametersMriCurrentSession.(genvarname(strFieldname)))
+        for cr = 1:numel(parametersMriCurrentSession.(matlab.lang.makeValidName(strFieldname)))
             counterFileIndex = counterFileIndex + 1;
             if cr == 1 && cfi > 1
                 strOffset = sprintf('\n\n');
@@ -385,8 +443,8 @@ while bInvalidEntryDetected
             else
                 strOffset = sprintf('');
             end
-            aStrFileIndex{counterFileIndex} = num2str(parametersMriCurrentSession.(genvarname(strFieldname))(cr));
-            aStrFileIndexDescription{counterFileIndex} = sprintf('%s', parametersMriSessionStandard.strDescription.(genvarname(strFieldname)){cr});
+            aStrFileIndex{counterFileIndex} = num2str(parametersMriCurrentSession.(matlab.lang.makeValidName(strFieldname))(cr));
+            aStrFileIndexDescription{counterFileIndex} = sprintf('%s', parametersMriSessionStandard.strDescription.(matlab.lang.makeValidName(strFieldname)){cr});
             strSummaryPrompt{counterFileIndex} = sprintf('%sFile index for %s:', strOffset, aStrFileIndexDescription{counterFileIndex});
         end
     end
@@ -412,7 +470,7 @@ while bInvalidEntryDetected
 end
 
 %% Detect empty entries
-if isempty(aStrAnswers) 
+if isempty(aStrAnswers)
     bAbort = openInvalidParametersDialogATWM1;
     if bAbort == true
         return
@@ -423,9 +481,9 @@ else
         counterFileIndex = 0;
         for cfi = 1:numel(aStrFileIndexFieldnames)
             strFieldname = aStrFileIndexFieldnames{cfi};
-            for cr = 1:numel(parametersMriCurrentSession.(genvarname(strFieldname)))
+            for cr = 1:numel(parametersMriCurrentSession.(matlab.lang.makeValidName(strFieldname)))
                 counterFileIndex = counterFileIndex + 1;
-                parametersMriCurrentSession.(genvarname(strFieldname))(cr) = str2double(aStrAnswers{counterFileIndex});
+                parametersMriCurrentSession.(matlab.lang.makeValidName(strFieldname))(cr) = str2double(aStrAnswers{counterFileIndex});
                 parametersMriCurrentSession.allFileIndices(counterFileIndex) = str2double(aStrAnswers{counterFileIndex});
             end
         end
@@ -489,7 +547,7 @@ if parametersMriCurrentSession.nInvalidRuns > 0
     aStrDefaultAnswer = {};
     for cfi = 1:parametersMriCurrentSession.nInvalidRuns
         strPrompt = sprintf('Please enter # slices / measurements for invalid run %i with file index %i', cfi, fileIndexInvalidRuns(cfi));
-        aStrPrompt = [aStrPrompt, strPrompt]; 
+        aStrPrompt = [aStrPrompt, strPrompt];
         strAnswer = sprintf('NaN');
         strAnswer = sprintf('3');
         aStrDefaultAnswer = [aStrDefaultAnswer, strAnswer];
@@ -603,8 +661,7 @@ fprintf(fid, 'end');
 
 fclose(fid);
 
-strMessage = sprintf('File %s successfully created!', strPathParametersMriSessionFile);
-disp(strMessage);
+fprintf('File %s successfully created!\n', strPathParametersMriSessionFile);
 
 
 end
@@ -617,11 +674,9 @@ if ~isempty(find(strfind(parametersNetwork.strCurrentComputer, parametersNetwork
     if exist(strPathParametersMriSessionFile, 'file')
         success = copyfile(strPathParametersMriSessionFile, strPathServerParametersMriSessionFile);
         if success
-            strMessage = sprintf('File %s successfully copied to server!\n', strPathParametersMriSessionFile);
-            disp(strMessage);
+            fprintf('File %s successfully copied to server!\n\n', strPathParametersMriSessionFile);
         else
-            strMessage = sprintf('Error while copying file %s to server!\nFile was not copied', strPathParametersMriSessionFile);
-            disp(strMessage);
+            fprintf('Error while copying file %s to server!\nFile was not copied.\n', strPathParametersMriSessionFile);
         end
     end
 end

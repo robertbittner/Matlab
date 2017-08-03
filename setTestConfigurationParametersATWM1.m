@@ -18,6 +18,7 @@ parametersProjectFiles.bUseSingleSubjectTestFolder      = true;
 fprintf('Test configuration enabled! Subject and parameter selection disabled!\n');
 aStrSubject = {
     'VE85QGL'
+    %'JA34HRQ'
     };
 nSubjects = numel(aStrSubject);
 iSession = 1;
@@ -33,5 +34,7 @@ folderDefinition.dicomFileTransferFromScanner   = 'D:\Daten\ATWM1\_TEST\Server\0
 folderDefinition.archiveDICOMfiles              = 'D:\Daten\ATWM1\_TEST\Local\Archive_DICOM_Files\';
 folderDefinition.logfilesServer                 = 'D:\Daten\ATWM1\_TEST\Server\Presentation_Logfiles\';
 
+
+bAllFoldersCanBeAccessed = checkLocalComputerFolderAccessATWM1(folderDefinition);
 
 end

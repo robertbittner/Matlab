@@ -1,4 +1,4 @@
-function computeBehavioralDataATWM1_PSY_EXP8 ();
+function computeBehavioralDataATWM1_PSY_EXP8 ()
 % ATWM1
 % Analyze psycho-physics presentation logfiles for EXP8
 
@@ -6,53 +6,85 @@ clear all;
 clc;
 
 global iStudy
-global iSubject
+global strGroup
+global strSubject
 
 iStudy = 'ATWM1';
 
 % Specifies the psychophysical experiment
 experimentNumber = 8;
 
+
+
 folderDefinition        = feval(str2func(strcat('folderDefinition', iStudy)));
 parametersStudy         = feval(str2func(strcat('parametersStudy', iStudy)));
 parametersGroups        = feval(str2func(strcat('parametersGroups', iStudy)));
 
 % Specifies the psychophysical experiment
-parametersStudy.experimentNumber = experimentNumber;
 
+parametersStudy.strCurrentStudy                     = parametersStudy.aStrStudies{parametersStudy.indBehavioralStudy};
+parametersStudy.experimentNumber = experimentNumber;
+parametersStudy.strCurrentStudy = sprintf('%s_%s', iStudy, parametersStudy.strPsychophysics);
 
 parametersParadigm                  = feval(str2func(strcat('parametersParadigm', iStudy, '_', parametersStudy.strPsychophysics, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber))));
 parametersAnalysisBehavioralData    = feval(str2func(strcat('parametersAnalysisBehavioralData', iStudy)));
 parametersParadigm.strExperiment    = strcat(iStudy, '_', parametersStudy.strPsychophysics, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber));
 
-
+%{
 aSubject = feval(str2func(strcat('aSubject', iStudy)));
 hFunction = str2func(sprintf('prepareGroupInformation%s', iStudy));
 [aSubject, nGroups, nSubjects] = feval(hFunction, parametersParadigm, parametersGroups, aSubject);
+%}
+
+%%% Load subject names
+%hFunction = str2func(strcat('aSubject', iStudy, '_', parametersStudy.strPsychophysics));
+%aSubject = feval(hFunction);
+
+hFunction = str2func(sprintf('processSubjectArray%s', iStudy));
+aSubject = feval(hFunction, parametersStudy)
+
+
+%%% Open options dialog
+strQuestion = 'Process logfiles of all subjects or of selected subjects';
+strTitle = 'Mode of logfile processing';
+strOption1 = 'Selected subject';
+strOption2 = 'All subjects';
+defaultOption = strOption1;
+choice = questdlg(strQuestion, strTitle , strOption1, strOption2, defaultOption);
+switch choice
+    case strOption1
+        bProcessSingleSubject   = true;
+        bProcessAllSubjects     = false;
+        strMode = strrep(strOption1, ' ', '_');
+    case strOption2
+        bProcessSingleSubject   = false;
+        bProcessAllSubjects     = true;
+        strMode = strrep(strOption2, ' ', '_');
+    otherwise
+        error('No option selected!\n');
+end
+
+if bProcessSingleSubject
+    strDialogSelectionModeSubject = 'multiple';
+    [strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAndSubjectIdATWM1(parametersStudy, parametersGroups, aSubject, strDialogSelectionModeSubject);
+    if bAbort == true
+        return
+    end
+elseif bProcessAllSubjects
+    aStrSubjects = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy)).(matlab.lang.makeValidName(parametersGroups.strGroups)).(matlab.lang.makeValidName(parametersGroups.strShortAll))
+    nSubjects = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy)).nSubjects.(matlab.lang.makeValidName(parametersGroups.strShortAll))
+end
 
 
 %{
-[bAnalyseAllSubjects, bAbortFunction] = selectBehavioralDataAnalysisOptionATWM1(iStudy, parametersStudy);
-if bAbortFunction == true
-    return
-end
-
-%%% Select single subject
-if bAnalyseAllSubjects == false
-    strPrompt = sprintf('Select subject');
-    [indSubject]  = listdlg('ListString', aSubject.allSubjects, 'PromptString', {strPrompt, ''}, 'SelectionMode', 'single', 'ListSize', [200 700]);
-    strSubject = aSubject.allSubjects{indSubject};
-else
-    strSubject = '';
-end
-%}
-
-%%{
 % REMOVE
 bAnalyseAllSubjects = false;
-strSubject = 'AXSA74';
+strSubject = 'CHKA87';
+strGroup = 'CONT';
+aStrSubject = {strSubject};
+nSubjects = 1;
 % REMOVE
-%}
+
 
 %%% Modify aSubject to reduce it to a single subject (and group)
 aStrGroupFieldnames = fieldnames(aSubject.Groups);
@@ -61,12 +93,12 @@ for cfn = 1:numel(aStrGroupFieldnames)
     aStrSubjectsGroup = aSubject.(genvarname(parametersGroups.strGroups)).(genvarname(aStrGroupFieldnames{cfn}));
     if find(strcmp(aStrSubjectsGroup, strSubject))
         indGroup = cfn;
-        strGroupLabel = {aStrGroupFieldnames{indGroup}};
-        strShortGroupLabel = {aStrGroupFieldnames{indGroup}(1:3)};
+        strGroupLabel = {aStrGroupFieldnames{indGroup}}
+        strShortGroupLabel = {aStrGroupFieldnames{indGroup}(1:3)}
     end
 end
 
-%%{
+
 allSubjects                             = {strSubject};
 nSubjectsAll                            = numel(allSubjects);
 nSubjects                               = nSubjectsAll;
@@ -85,8 +117,15 @@ aSubject.aStrGroupVariableName  = aStrGroupVariableName;
 aSubject.strShortGroupLabel     = strShortGroupLabel;
 aSubject.strGroupLabel          = strGroupLabel;
 
-%aSubject.
-%aSubject.
+
+aSubject.Groups%: [1×1 struct]
+aSubject.aStrGroupVariableName%: {3×1 cell}
+aSubject.nGroups%: 3
+aSubject.strShortGroupLabel%: {'CON'  'SCH'  'BIP'}
+aSubject.strGroupLabel%: {'CONT'  'SCHI'  'BIPO'}
+aSubject.nSubjects%: [40 47 28]
+aSubject.nSubjectsAll%: 115
+aSubject.ALL%: {115×1 cell}
 %}
 %etst = aSubject
 
@@ -119,41 +158,42 @@ bReprocessAllData = false;
 
 
 
+strLogFilesFolderName	= 'D:\Daten\ATWM1\Presentation_Logfiles\___Presentation_Logfiles_PSY\';
+strResultsFolderName	= 'D:\Daten\ATWM1\PSY_Behavioral_Data';
 
-
-strLogFilesFolderName	= strcat(folderDefinition.logFiles, parametersStudy.strPsychophysics, '\', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '\');
-strResultsFolderName	= strcat(folderDefinition.behavioralData, parametersStudy.strPsychophysics, '\', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '\');
+%strLogFilesFolderName	= strcat(folderDefinition.logFiles, parametersStudy.strPsychophysics, '\', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '\');
+%strResultsFolderName	= strcat(folderDefinition.behavioralData, parametersStudy.strPsychophysics, '\', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '\');
 
 
 %%% Check completeness of data
-for cg = 1:nGroups
-    % Process the log files and save the trial data
-    %test = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg}))
-    %test = nSubjects(cg)
-    for cs = 1:nSubjects(cg)
-        %cs = cs
-        iSubject = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
-        strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', iSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
-        strPathBehavioralDataFile = strcat(strResultsFolderName, strBehavioralDataFile);
-        for cco = 1:parametersParadigm.nConditions
-            for cr = 1:parametersParadigm.nRunsPerCondition(cco)
-                strLogFileName = strcat(iSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(parametersParadigm.iFullRuns(cr)), '.log');
-                strLogFilePath = strcat(strLogFilesFolderName, strLogFileName);
-                if ~exist(strLogFilePath, 'file')
-                    strMessage = sprintf('\nCould not open %s\n', strLogFilePath);
-                    %error('%s', strMessage);
-                    continue
-                end
+for cs = 1:nSubjects
+    %aStrSubject%, nSubjects
+    %cs = cs
+    strSubject = aStrSubjects{cs};
+    strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', strSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
+    strPathBehavioralDataFile = strcat(strResultsFolderName, strBehavioralDataFile);
+    for cco = 1:parametersParadigm.nConditions
+        for cr = 1:parametersParadigm.nRunsPerCondition(cco)
+            strLogFileName = strcat(strSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(parametersParadigm.iFullRuns(cr)), '.log');
+            strLogFilePath = strcat(strLogFilesFolderName, strLogFileName);
+            if ~exist(strLogFilePath, 'file')
+                fprintf('\nCould not open %s\n\n', strLogFilePath);
+                %error('%s', strMessage);
+                continue
             end
         end
     end
 end
+%end
 
-for cg = 1:nGroups
+
+return
+
+for cg = 1:aSubject.nGroups
     % Process the log files and save the trial data
-    for cs = 1:nSubjects(cg)
-        iSubject = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
-        strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', iSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
+    for cs = 1:aSubject.nSubjects(cg)
+        strSubject = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
+        strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', strSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
         strPathBehavioralDataFile = strcat(strResultsFolderName, strBehavioralDataFile);
         if exist(strPathBehavioralDataFile, 'file') && bReprocessAllData == false
             continue
@@ -164,14 +204,14 @@ for cg = 1:nGroups
             
             for cr = 1:parametersParadigm.nRunsPerCondition(cco)
                 
-                %strLogFileName = strcat(iSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(cr), '.log');
+                %strLogFileName = strcat(strSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(cr), '.log');
                 
-                strLogFileName = strcat(iSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(parametersParadigm.iFullRuns(cr)), '.log');
+                strLogFileName = strcat(strSubject, '-', iStudy, '_', parametersStudy.strExperiment, num2str(parametersStudy.experimentNumber), '_', parametersStudy.strPsychophysics, '_', parametersParadigm.aConditions{cco}, '_', parametersStudy.strRun, num2str(parametersParadigm.iFullRuns(cr)), '.log');
                 
                 strLogFilePath = strcat(strLogFilesFolderName, strLogFileName);
                 
                 if ~exist(strLogFilePath, 'file')
-                    strMessage = sprintf('\nCould not open %s\n', strLogFilePath);
+                    fprintf('\nCould not open %s\n\n', strLogFilePath);
                     %error('%s', strMessage);
                     continue
                 end
@@ -181,7 +221,7 @@ for cg = 1:nGroups
                 hFunction = str2func(sprintf('readLogfile%s', iStudy));
                 tempTrialData = feval(hFunction, parametersParadigm, strLogFilePath);
                 
-                if isempty(tempTrialData),
+                if isempty(tempTrialData)
                     break
                 end
                 
@@ -208,15 +248,15 @@ for cg = 1:nGroups
 end
 
 % Calculate and store performance data for each subject
-for cg = 1:nGroups
-    for cs = 1:nSubjects(cg)
-        iSubject = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
-        strPerformanceDataFile = sprintf('%s_%s_%s_%s%i_PerformanceData.mat', iSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
+for cg = 1:aSubject.nGroups
+    for cs = 1:aSubject.nSubjects(cg)
+        strSubject = aSubject.Groups.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
+        strPerformanceDataFile = sprintf('%s_%s_%s_%s%i_PerformanceData.mat', strSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
         strPathPerformanceDataFile{cg, cs} = strcat(strResultsFolderName, strPerformanceDataFile);
         if exist(strPathPerformanceDataFile{cg, cs}, 'file') && bReprocessAllData == false
             load('-mat', strPathPerformanceDataFile{cg, cs});
         else
-            strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', iSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
+            strBehavioralDataFile = sprintf('%s_%s_%s_%s%i_BehavioralData.mat', strSubject, iStudy, parametersStudy.strPsychophysics, parametersStudy.strExperiment, parametersStudy.experimentNumber);
             strPathBehavioralDataFile = strcat(strResultsFolderName, strBehavioralDataFile);
             
             hFunction = str2func(sprintf('calculateSubjecPerformanceData%s', iStudy));
@@ -339,106 +379,66 @@ end
 
 end
 
-%%% Old version 
-%{
-function [aSubject, nGroups, nSubjects] = prepareGroupInformationATWM1(parametersStudy, parametersParadigm, aSubject);
-% Group information is processed
-% If only a single group exists and aSubjects is not a structure, aSubjects
-% is transformed into a structure with one field carrying the name of the
-% default group name.
-aSubject = aSubject.(genvarname(parametersParadigm.strExperiment));
-if isstruct(aSubject) ~= 1
-    aSubjectTemp = aSubject;
-    clear aSubject;
-    aSubject.(parametersStudy.defaultGroupName) = aSubjectTemp;
-end
-aStrGroupVariableName = fieldnames(aSubject);
-nGroups = length(aStrGroupVariableName);
-aSubject.aStrGroupVariableName = sort(aStrGroupVariableName);
-for cg = 1:nGroups
-    strGroupNameCapitalLetters = upper(aSubject.aStrGroupVariableName{cg});
-    aSubject.strShortGroupLabel{cg} = strGroupNameCapitalLetters(1:3);
-    aSubject.strGroupLabel{cg} = regexprep(aSubject.aStrGroupVariableName{cg}, aSubject.aStrGroupVariableName{cg}(1), upper(aSubject.aStrGroupVariableName{cg}(1)), 'once');
-    nSubjects(cg) = length(aSubject.(genvarname(aStrGroupVariableName{cg})));
-end
 
-
-end
-%}
-
-function [aSubject, nGroups, nSubjects] = prepareGroupInformationATWM1(parametersParadigm, parametersGroups, aSubject);
+%function [aSubject, nGroups, nSubjects] = prepareGroupInformationATWM1(parametersParadigm, parametersGroups, aSubject);
+function [aSubject] = prepareGroupInformationATWM1_PSY(aSubject, parametersStudy)
 %global iStudy
 % Group information is processed
 % If only a single group exists and aSubjects is not a structure, aSubjects
 % is transformed into a structure with one field carrying the name of the
 % default group name.
 
-aSubject = aSubject.(genvarname(parametersParadigm.strExperiment));
-
-
-%%% Check whether subject labels match the predefined labels
-aStrShortGroups = parametersGroups.aStrShortGroups;
-aStrGroupFieldnames = fieldnames(aSubject.Groups);
-if ~isempty(setxor(aStrGroupFieldnames, aStrShortGroups))   
-    error('Groups labels in %s.m do not match the labels specified in %s.m!', mfilename, strParmetersGroupFile);
+%aSubject = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy)).Groups;
+aSubject = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy));
+if isstruct(aSubject) ~= 1
+    aSubjectTemp = aSubject;
+    clear aSubject;
+    aSubject.Groups.(parametersStudy.defaultGroupName) = aSubjectTemp;
 end
-
-%%% Write all subject IDs of all groups in a single array
-aStrAllSubjectNames = {};
-for cfn = 1:numel(aStrGroupFieldnames)
-    aStrSubjectNameGroup = aSubject.(genvarname(parametersGroups.strGroups)).(genvarname(aStrGroupFieldnames{cfn}));
-    aStrAllSubjectNames = [aStrAllSubjectNames, aStrSubjectNameGroup'];
+aSubject.aStrGroupVariableName = fieldnames(aSubject.Groups);
+aSubject.nGroups = length(aSubject.aStrGroupVariableName);
+for cg = 1:aSubject.nGroups
+    strGroupNameCapitalLetters = upper(aSubject.aStrGroupVariableName{cg});
+    aSubject.strShortGroupLabel{cg} = strGroupNameCapitalLetters(1:3);
+    aSubject.strGroupLabel{cg} = regexprep(aSubject.aStrGroupVariableName{cg}, aSubject.aStrGroupVariableName{cg}(1), upper(aSubject.aStrGroupVariableName{cg}(1)), 'once');
+    aSubject.nSubjects(cg) = length(aSubject.Groups.(matlab.lang.makeValidName(aSubject.aStrGroupVariableName{cg})));
 end
-aSubject.allSubjects = sort(aStrAllSubjectNames);
-%aSubject.allSubjects = sort(aSubject.allSubjects);
+aSubject.nSubjectsAll = sum(aSubject.nSubjects);
+%%% Create a single array containing subject codes for all groups
+aStrAllSubjects = [];
+for cg = 1:aSubject.nGroups
+    aStrSubjectsGroup = aSubject.Groups.(matlab.lang.makeValidName(aSubject.strGroupLabel{cg}));
+    aStrAllSubjects = [aStrAllSubjects, aStrSubjectsGroup'];
+end
+aSubject.ALL = (sort(aStrAllSubjects))';
+aSubject.nSubjectsAll = numel(aSubject.ALL)
+
 
 %%% Check, whether all subject IDs are unique
-aStrUniqueSubjects = unique(aSubject.allSubjects);
-if numel(aSubject.allSubjects) ~= numel(aStrUniqueSubjects)
+aStrUniqueSubjects = unique(aSubject.ALL);
+if aSubject.nSubjectsAll ~= numel(aStrUniqueSubjects)
     for cs = 1:numel(aStrUniqueSubjects)
         strSubject = aStrUniqueSubjects{cs};
         if sum(strcmp(strSubject, aSubject.allSubjects)) ~= 1
-            strMessage = sprintf('Error! Duplicate entry for subject %s\n', strSubject);
-            disp(strMessage);
+            fprintf('Error! Duplicate entry for subject %s\n\n', strSubject);
         end
     end
     error('Duplicate entries detected');
 end
 
-aSubject.nSubjectsAll = numel(aStrAllSubjectNames);
-nGroups = 0;
-for cfn = 1:numel(aStrGroupFieldnames)
-    nSubjects(cfn) = numel(aSubject.Groups.(genvarname(aStrGroupFieldnames{cfn})));
-    if nSubjects(cfn) > 0
-        nGroups = nGroups + 1;
-        aStrGroupVariableName{nGroups} = aStrGroupFieldnames{cfn};
-
-    end
-end
-aSubject.nGroups = nGroups;
-nSubjects = nSubjects(nSubjects ~= 0);
-aSubject.nSubjectsGroup = nSubjects;
-aSubject.aStrGroupVariableName = aStrGroupVariableName;
-
-for cg = 1:nGroups
-    strGroupNameCapitalLetters = upper(aSubject.aStrGroupVariableName{cg});
-    aSubject.strShortGroupLabel{cg} = strGroupNameCapitalLetters(1:3);
-    aSubject.strGroupLabel{cg} = regexprep(aSubject.aStrGroupVariableName{cg}, aSubject.aStrGroupVariableName{cg}(1), upper(aSubject.aStrGroupVariableName{cg}(1)), 'once');
-end
 
 
 end
 
 
-function trialData = readLogfileATWM1(parametersParadigm, strLogFilePath);
+function trialData = readLogfileATWM1(parametersParadigm, strLogFilePath)
 
 global iStudy
-global iSubject
+global strSubject
 
 fid = fopen(strLogFilePath, 'rt');
 
-strMessage = sprintf('\nStart analysis of %s\n', strLogFilePath);
-disp(strMessage);
+fprintf('\nStart analysis of %s\n\n', strLogFilePath);
 
 % read strLines until the index of the first trial has been found
 bFoundFirstTrial = false;
@@ -528,6 +528,7 @@ if cTrials ~= parametersParadigm.nTrialsPerRun
     disp(strMessage);
 end
 
+fclose(fid);
 
 end
 
@@ -608,8 +609,8 @@ for cg = 1:nGroups
                     addData = [addData, subjectPerformanceData.(aStrVars{cv})(cg, cs, cco)];
                 end
             else
-                iSubject = aSubject.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
-                strMessage = sprintf('Error when trying to write data for subject %s!\nIncompatible data format in variable %s', iSubject, aStrVars{cv});
+                strSubject = aSubject.(genvarname(aSubject.aStrGroupVariableName{cg})){cs};
+                strMessage = sprintf('Error when trying to write data for subject %s!\nIncompatible data format in variable %s', strSubject, aStrVars{cv});
                 disp(strMessage);
             end
             row = [row, addData];
@@ -898,7 +899,7 @@ end
 function saveBehavioralDataATWM1(parametersParadigm, trialDataRun, strBehavioralDataFile, strPathBehavioralDataFile);
 
 global iStudy
-global iSubject
+global strSubject
 
 % Combine the trial data from all runs and conditions into a single
 % array 'aTrialData'
@@ -1100,7 +1101,7 @@ function createBarGraphATWM1_PSY_EXP8_old(parametersStudy, parametersParadigm, f
 % create bar graph of Cowan's K
 
 global iStudy
-global iSubject
+global strSubject
 
 strColorFlicker = 'black';
 strColorNonflicker = 'white';
@@ -1192,7 +1193,7 @@ function createBarGraphATWM1_PSY_EXP8(parametersStudy, parametersParadigm, folde
 % create bar graph of Cowan's K
 
 global iStudy
-global iSubject
+global strSubject
 
 
 nGapBars = 2;

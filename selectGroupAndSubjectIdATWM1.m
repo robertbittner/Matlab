@@ -1,4 +1,4 @@
-function [strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAndSubjectIdATWM1(parametersGroups, aSubject, varargin)
+function [strGroup, strSubject, aStrSubject, nSubjects, bAbort] = selectGroupAndSubjectIdATWM1(parametersStudy, parametersGroups, aSubject, varargin)
 
 global iStudy
 
@@ -29,13 +29,13 @@ while bSubjectInformationCorrect == false
     strPrompt = 'Please select the subject code';
     strTitle = 'Subject code';
     vListSize = [300, 600];
-    aStrSubjectsGroup = aSubject.ATWM1_IMAGING.Groups.(genvarname(strGroup));
+    aStrSubjectsGroup = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy)).Groups.(genvarname(strGroup));
     [iSubject] = listdlg('ListString', aStrSubjectsGroup, 'PromptString', strPrompt, 'Name', strTitle, 'ListSize', vListSize, 'SelectionMode', strDialogSelectionModeSubject);
     if isempty(iSubject)
         strMessage = sprintf('\n\nNo subject(s)selected!\n');
         error(strMessage);
     end
-    aStrSubject = aSubject.ATWM1_IMAGING.Groups.(genvarname(strGroup))(iSubject);
+    aStrSubject = aSubject.(matlab.lang.makeValidName(parametersStudy.strCurrentStudy)).Groups.(genvarname(strGroup))(iSubject);
     nSubjects = numel(aStrSubject);
     %%% Verify information
     hFunction = str2func(sprintf('verifySubjectAndGroupInformation%s', iStudy));
@@ -83,13 +83,11 @@ switch choice
     case strOption3
         bSubjectInformationCorrect = false;
         bAbort = true;
-        strMessage = sprintf('No subject(s)selected.\nAborting function.');
-        disp(strMessage);
+        fprintf('No subject(s)selected.\nAborting function.\n');
     otherwise
         bSubjectInformationCorrect = false;
         bAbort = true;
-        strMessage = sprintf('No subject(s)selected.\nAborting function.');
-        disp(strMessage);
+        fprintf('No subject(s)selected.\nAborting function.\n');
 end
 
 

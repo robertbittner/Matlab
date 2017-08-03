@@ -119,7 +119,7 @@ for cs = 1:nSubjects
                 %%% and run BrainVoyager as a COM object
                 hFunction = str2func(sprintf('runBrainVoyagerQX%s', iStudy));
                 %hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
-                [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
+                [bvqx, parametersComProcess, parametersBrainVoyager, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
                 if bIncompatibleBrainVoyagerVersion == true
                     bVtcFileCreated = false;
                     return
@@ -234,7 +234,7 @@ fprintf('\nStarting creation of VTC file %s.\n', strVtcFile);
 %%% and run BrainVoyager as a COM object
 hFunction = str2func(sprintf('runBrainVoyagerQX%s', iStudy));
 %hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
-[bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
+[bvqx, parametersComProcess, parametersBrainVoyager, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
 if bIncompatibleBrainVoyagerVersion == true
     bVtcFileCreated = false;
     return

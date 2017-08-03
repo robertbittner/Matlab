@@ -1,4 +1,4 @@
-function [strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, success] = archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, parametersFileTransfer)
+function [folderDefinition, strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, success] = archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession,  parametersFileTransfer, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles)
 %%% Anonymise and copy DICOM files of high-res anatomy in separate folder on the server
 
 global iStudy
@@ -7,65 +7,50 @@ global strSubject
 
 parametersDicomFileAnonymisation = eval(['parametersDicomFileAnonymisation', iStudy]);
 
-folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderATWM1(folderDefinition, parametersDicomFileAnonymisation);
+folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderSubjectATWM1(folderDefinition, parametersDicomFileAnonymisation, parametersStructuralMriSequenceHighRes);
 [aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes] = defineHighResAnatomyDicomFilesATWM1(parametersMriSession, aStrLocalPathOriginalDicomFiles);
+[folderDefinition, aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes, bAllFilesCopied] = copyDicomFilesToLocalArchiveForAnonymisationATWM1(folderDefinition, parametersFileTransfer, aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes);
 
-[folderDefinition, aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes, success] = copyDicomFilesToLocalArchiveForAnonymisationATWM1(folderDefinition, parametersFileTransfer, aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes);
-
-if success
-    [aStrAnonymisedDicomFilesVmrHighRes, aStrPathAnonymisedDicomFilesVmrHighRes] = anonymiseDicomFilesVmrHighResATWM1(aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes);
+if bAllFilesCopied
+    [aStrAnonymisedDicomFilesVmrHighRes, aStrPathAnonymisedDicomFilesVmrHighRes] = anonymiseDicomFilesVmrHighResATWM1(folderDefinition, parametersDicomFileAnonymisation, aStrPathDicomFilesForAnonymisation, aStrOriginalDicomFilesVmrHighRes, nFilesVmrHighRes);
     [strZipFileAnonymisedHighResAnatomy, strPathLocalZipFileAnonymisedHighResAnatomy, success] = zipAnonymisedDicomFilesATWM1(folderDefinition, parametersStructuralMriSequenceHighRes);
     
-    if success
+    if success && parametersFileTransfer.bArchiveFilesOnServer
         [strPathServerZipFileAnonymisedHighResAnatomy, success] = copyZipFileWithAnonymisedDicomFilesToServerATWM1(folderDefinition, strZipFileAnonymisedHighResAnatomy, strPathLocalZipFileAnonymisedHighResAnatomy);
+    else
+        strPathServerZipFileAnonymisedHighResAnatomy = '';
     end
     
 end
 
-end
-
-
-function [aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes] = defineHighResAnatomyDicomFilesATWM1(parametersMriSession, aStrLocalPathOriginalDicomFiles)
-%%% Define name and path of high-res anatomy DICOM files
-fileIndexVmrHighRes = parametersMriSession.fileIndexVmrHighRes;
-nFilesVmrHighRes    = parametersMriSession.nMeasurementsInRun(fileIndexVmrHighRes);
-
-indexStart  = parametersMriSession.vStartIndexDicomFileRun(fileIndexVmrHighRes);
-indexEnd    = indexStart + nFilesVmrHighRes;
-
-aStrPathOriginalDicomFilesVmrHighRes    = aStrLocalPathOriginalDicomFiles(indexStart : indexEnd - 1);
-
-strSeparator = '\';
-for cf = 1:numel(aStrPathOriginalDicomFilesVmrHighRes)
-    index = strfind(aStrPathOriginalDicomFilesVmrHighRes, strSeparator);
-    index = index(:, 1);
-    aStrOriginalDicomFilesVmrHighRes{cf} = aStrPathOriginalDicomFilesVmrHighRes(index + 1 : end);
-end
 
 end
 
 
-function [folderDefinition, aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes, success] = copyDicomFilesToLocalArchiveForAnonymisationATWM1(folderDefinition, parametersFileTransfer, aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes)
+function [folderDefinition, aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes, bAllFilesCopied] = copyDicomFilesToLocalArchiveForAnonymisationATWM1(folderDefinition, parametersFileTransfer, aStrPathOriginalDicomFilesVmrHighRes, aStrOriginalDicomFilesVmrHighRes)
 %%% Copy DICOM files of high-res anatomy in separate archive folder for
 %%% anonymisation
 
 global strSubject
 
 %%% Create subject folder and anonymised subfolder for DICOM files
-if ~exist(folderDefinition.archiveAnonymisedHighResAnatomySubject, 'dir')
-    mkdir(folderDefinition.archiveAnonymisedHighResAnatomySubject);
-    if ~exist(folderDefinition.archiveAnonymisedHighResAnatomySubjectAnon, 'dir')
-        mkdir(folderDefinition.archiveAnonymisedHighResAnatomySubjectAnon);
-    end
+if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomySubject, 'dir')
+    mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomySubject);
 end
+if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon, 'dir')
+    mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon);
+end
+
 
 nFilesVmrHighRes = numel(aStrOriginalDicomFilesVmrHighRes);
 
 for cf = 1:nFilesVmrHighRes
     %%% Define file path and copy file
-    aStrPathDicomFilesForAnonymisation{cf} = fullfile(folderDefinition.archiveAnonymisedHighResAnatomySubjectAnon, aStrOriginalDicomFilesVmrHighRes{cf});
+    aStrPathDicomFilesForAnonymisation{cf} = fullfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon, aStrOriginalDicomFilesVmrHighRes{cf});
     if parametersFileTransfer.bOverwriteExistingFiles == true || ~exist(aStrPathDicomFilesForAnonymisation{cf}, 'file')
-        success(cf) = copyfile(aStrPathOriginalDicomFilesVmrHighRes{cf}, aStrPathDicomFilesForAnonymisation{cf});
+        %success(cf) = copyfile(aStrPathOriginalDicomFilesVmrHighRes{cf}, aStrPathDicomFilesForAnonymisation{cf});
+        [success(cf),MESSAGE,MESSAGEID]= copyfile(aStrPathOriginalDicomFilesVmrHighRes{cf}, aStrPathDicomFilesForAnonymisation{cf});
+        disp(MESSAGE)
     else
         success(cf) = 1;
     end
@@ -73,70 +58,73 @@ end
 
 if sum(success) == nFilesVmrHighRes
     fprintf('All %i DICOM files for high-res anatomy of subject %s successfully copied for anonymisation!\n\n', nFilesVmrHighRes, strSubject);
-    success = true;
+    bAllFilesCopied = true;
 else
     nrOfFilesNotCopied = nFilesVmrHighRes - sum(success);
-    success = false;
+    bAllFilesCopied = false;
     fprintf('Error while copying DICOM files for high-res anatomy of subject %s for anonymisation!\n', strSubject);
     fprintf('%i DICOM files were not copied!\n\n', nrOfFilesNotCopied);
 end
 
+
 end
 
 
-function [aStrAnonymisedDicomFilesVmrHighRes, aStrPathAnonymisedDicomFilesVmrHighRes] = anonymiseDicomFilesVmrHighResATWM1(aStrPathDicomFilesForAnonymisation, nFilesVmrHighRes)
+function [aStrAnonymisedDicomFilesVmrHighRes, aStrPathAnonymisedDicomFilesVmrHighRes] = anonymiseDicomFilesVmrHighResATWM1(folderDefinition, parametersDicomFileAnonymisation, aStrPathDicomFilesForAnonymisation, aStrOriginalDicomFilesVmrHighRes, nFilesVmrHighRes)
 %%% Anonymise DICOM files of high-res anatomy
-for cf = 1:nFilesVmrHighRes
-    fprintf('WARNING! Anonymisation of DICOM files has not yet been implemented and tested!\n');
-    aStrPathAnonymisedDicomFilesVmrHighRes{cf}  = aStrPathDicomFilesForAnonymisation{cf};
-    %aStrPathAnonymisedDicomFilesVmrHighRes{cf}  = dicmonanon(aStrPathOriginalDicomFilesVmrHighRes{cf});
-    %%% This might not be necessary / might have to be modified
-    %%% This depends on the implementation of the anondicom function, i.e.,
-    %%% whether it creates a new file our just keeps the anonDicom in
-    %%% memory
-    index = strfind(aStrPathAnonymisedDicomFilesVmrHighRes{cf}, '\');
-    indexFolder = index(end);
-    indexFile = index(end) + 1;
-    aStrAnonymisedDicomFilesVmrHighRes{cf} = aStrPathAnonymisedDicomFilesVmrHighRes{cf}(indexFile:end);
-    %%% This might not be necessary
-    
-    %%% REMOVE
-    %%% Creates a dummy anonDicom files
-    aStrNewAnonymisedDicomFilesVmrHighRes = strcat('ANON', '_', aStrAnonymisedDicomFilesVmrHighRes);
-    folder = aStrPathAnonymisedDicomFilesVmrHighRes{cf}(1:indexFolder);
-    aStrNewPathAnonymisedDicomFilesVmrHighRes{cf} = fullfile(folder, aStrNewAnonymisedDicomFilesVmrHighRes);
-    copyfile(aStrPathAnonymisedDicomFilesVmrHighRes{cf}, aStrNewPathAnonymisedDicomFilesVmrHighRes{cf});
-    
-    aStrPathAnonymisedDicomFilesVmrHighRes{cf} = aStrNewPathAnonymisedDicomFilesVmrHighRes{cf};
-    aStrAnonymisedDicomFilesVmrHighRes{cf} = aStrNewAnonymisedDicomFilesVmrHighRes{cf};
-    %%% REMOVE
+
+global strSubject
+
+try
+    for cf = 1:nFilesVmrHighRes
+        %%% Define name for anonymised DICOM file
+        strDicomFileAnonymised = strcat(parametersDicomFileAnonymisation.strAnonymised, '_', aStrOriginalDicomFilesVmrHighRes{cf});
+        aStrAnonymisedDicomFilesVmrHighRes{cf} = strrep(aStrOriginalDicomFilesVmrHighRes{cf}, aStrOriginalDicomFilesVmrHighRes{cf}, strDicomFileAnonymised);
+        aStrPathAnonymisedDicomFilesVmrHighRes{cf} = fullfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon, aStrAnonymisedDicomFilesVmrHighRes{cf});
+        
+        %%% Create anonymised DICOM file and delete original
+        dicomanon(aStrPathDicomFilesForAnonymisation{cf}, aStrPathAnonymisedDicomFilesVmrHighRes{cf});
+        delete(aStrPathDicomFilesForAnonymisation{cf});
+    end
+    fprintf('All %i DICOM files for high-res anatomy of subject %s successfully anonymised.\n\n', nFilesVmrHighRes, strSubject);
+catch
+    fprintf('Error while anonymising DICOM files for high-res anatomy of subject %s!\n', strSubject);
 end
+
 
 end
 
 
 function [strZipFileAnonymisedHighResAnatomy, strPathLocalZipFileAnonymisedHighResAnatomy, success] = zipAnonymisedDicomFilesATWM1(folderDefinition, parametersStructuralMriSequenceHighRes)
 
+global strSubject
+
 strZipFileAnonymisedHighResAnatomy = sprintf('%s.zip', parametersStructuralMriSequenceHighRes.strSequence);
-strPathLocalZipFileAnonymisedHighResAnatomy = fullfile(folderDefinition.folderDefinition.archiveAnonymisedHighResAnatomySubject, strZipFileAnonymisedHighResAnatomy);
+strPathLocalZipFileAnonymisedHighResAnatomy = fullfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubject, strZipFileAnonymisedHighResAnatomy);
+
 try
-    zip(strPathLocalZipFileAnonymisedHighResAnatomy, folderDefinition.archiveAnonymisedHighResAnatomySubjectSubfolder);
+    if exist(strPathLocalZipFileAnonymisedHighResAnatomy, 'file')
+        delete(strPathLocalZipFileAnonymisedHighResAnatomy);
+    end
+    zip(strPathLocalZipFileAnonymisedHighResAnatomy, folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon);
     success = 1;
+    fprintf('Zip file %s containing anonymised DICOM files for high-res anatomy of subject %s successfully created.\n\n', strPathLocalZipFileAnonymisedHighResAnatomy, strSubject);
 catch
     success = 0;
-    fprintf('Error! Could not create zip file containing anonymised DICOM files for subject %s!\n\n', strSubject);
+    fprintf('Error! Could not create zip file %s containing anonymised DICOM files for subject %s!\n\n', strPathLocalZipFileAnonymisedHighResAnatomy, strSubject);
 end
 
 if success
     %%% Delete anonymised DICOM files
     try
-        rmdir(folderDefinition.archiveAnonymisedHighResAnatomySubjectAnon, 's');
+        rmdir(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectAnon, 's');
         success = true;
     catch
         success = false;
         fprintf('Error! Could not delete local folder containing anonymised DICOM files for subject %s!\n\n', strSubject);
     end
 end
+
 
 end
 
@@ -145,21 +133,39 @@ function [strPathServerZipFileAnonymisedHighResAnatomy, success] = copyZipFileWi
 
 global strSubject
 
-%%% Copy zip file to server folder
-if ~exist(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer, 'dir')
-    mkdir(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer);
+%try
+    %%% Copy zip file to server folder
+    if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomyGroupServer, 'dir')
+        mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomyGroupServer);
+    end
+    if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer, 'dir')
+        mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer);
+    end
+    strPathServerZipFileAnonymisedHighResAnatomy = fullfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer, strZipFileAnonymisedHighResAnatomy);
+    fprintf('Storing anonymised DICOM files for high-res anatomy of subject %s in zip archive on server!\n\n', strSubject);
+    %[success, strCopyMessage] = copyfile(strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy);
+    strPathLocalZipFileAnonymisedHighResAnatomy = strPathLocalZipFileAnonymisedHighResAnatomy
+    strPathServerZipFileAnonymisedHighResAnatomy = strPathServerZipFileAnonymisedHighResAnatomy
+    
+    test = exist(strPathLocalZipFileAnonymisedHighResAnatomy, 'file')
+    %[{/a|/b}] 
+    strCommand = sprintf('copy [/y] %s %s', strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy);
+    [status, cmdout] = system(strCommand)
+    
+    if success
+        fprintf('Anonymised DICOM files for high-res anatomy of subject %s successfully stored in zip archive on server!\n\n', strSubject);
+    else
+        disp(strCopyMessage);
+        fprintf('\n\n');
+    end
+    %{
+catch
+    success = false;
+    strPathServerZipFileAnonymisedHighResAnatomy = '';
 end
-if ~exist(folderDefinition.archiveAnonymisedHighResAnatomySubjectServer, 'dir')
-    mkdir(folderDefinition.archiveAnonymisedHighResAnatomySubjectServer);
-end
-strPathServerZipFileAnonymisedHighResAnatomy = fullfile(folderDefinition.archiveAnonymisedHighResAnatomySubjectServer, strZipFileAnonymisedHighResAnatomy);
-[success, strCopyMessage] = copyfile(strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy);
-
-if success
-    fprintf('Anonymised DICOM files for high-res anatomy of subject %s successfully stored in zip archive on server!\n\n', strSubject);
-else
-	fprintf('Error while storing anonymised DICOM files for high-res anatomy of subject %s in zip archive on server!\n', strSubject);
-    disp(strCopyMessage);
+%}
+if ~success
+    fprintf('Error while storing anonymised DICOM files for high-res anatomy of subject %s in zip archive on server!\nFile could not be created!\n\n', strSubject);
 end
 
 end

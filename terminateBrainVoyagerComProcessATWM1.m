@@ -1,4 +1,4 @@
-function terminateBrainVoyagerComProcessATWM1(processId, processDuration, bFunctionCalledByAdditionalMatlabInstance, varargin);
+function terminateBrainVoyagerComProcessATWM1(processId, processDuration, bFunctionCalledByAdditionalMatlabInstance, varargin)
 %%% varargin is used to receive the ASCII code for iStudy
 global iStudy
 

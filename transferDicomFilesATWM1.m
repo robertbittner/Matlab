@@ -78,7 +78,7 @@ end
 
 return
 
-[bTransferSuccessful] = copyAnonymizedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrPathOriginalDicomFiles, aStrOriginalDicomFiles)
+[bTransferSuccessful] = copyAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrPathOriginalDicomFiles, aStrOriginalDicomFiles)
 
 %{
 s%%% REINSTATE

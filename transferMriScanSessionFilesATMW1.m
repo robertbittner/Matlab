@@ -1,7 +1,7 @@
 function transferMriScanSessionFilesATMW1()
 %%% Moves DICOM files and Presentation logfiles from beoserv to the local
-%%% server, adds the parametersMriSession.m file, creates a zip archive and 
-%%% stores it locally and on the server. 
+%%% server, adds the parametersMriSession.m file, creates a zip archive and
+%%% stores it locally and on the server.
 
 clear all
 clc
@@ -17,12 +17,12 @@ iStudy = 'ATWM1';
 
 bTestConfiguration = false;
 
+
 folderDefinition            = eval(['folderDefinition', iStudy]);
 parametersStudy             = eval(['parametersStudy', iStudy]);
 parametersDialog            = eval(['parametersDialog', iStudy]);
 %parametersDicomFiles        = eval(['parametersDicomFiles', iStudy]);
 parametersFileTransfer      = eval(['parametersFileTransfer', iStudy]);
-
 parametersProjectFiles      = eval(['parametersProjectFiles', iStudy]);
 parametersGroups            = eval(['parametersGroups', iStudy]);
 
@@ -35,7 +35,6 @@ parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequence
 %parametersFunctionalMriSequence_COPE    = eval(['parametersFunctionalMriSequence_COPE_', iStudy]);
 
 strStudyType = defineStudyTypeImaging(parametersStudy);
-
 
 if ~bTestConfiguration
     hFunction = str2func(sprintf('prepareMriScanSessionFilesTransfer%s', iStudy));
@@ -83,10 +82,11 @@ for cs = 1:nSubjects
     end
     
     %%{
-    try
+    %try
         % Transfer files
-        executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
+        [folderDefinition] = executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles);
         playSuccessToneATWM1;
+        %{
     catch
         fprintf('Error while transferring files for subject %s!\nSkipping subject!\n\n', strSubject);
         continue
@@ -171,14 +171,16 @@ end
 end
 
 
-function executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
+function [folderDefinition] = executeMriScanSessionFilesTransferATWM1(folderDefinition, parametersStudy, parametersMriSession, parametersFileTransfer, parametersParadigm_WM_MRI, parametersStructuralMriSequenceHighRes, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles)
 
 global iStudy
 global strGroup
 global strSubject
 
+global bTestConfiguration
+
 % Transfer DICOM files
-[strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, parametersFileTransfer);
+[strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, parametersFileTransfer, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles);
 
 % Transfer Presentation logfiles
 [bLogfilesLocalTransfer, bLogfilesServerTransfer] = transferPresentationLogfilesATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI, parametersFileTransfer, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesSubject);
@@ -191,88 +193,13 @@ zipMriSessionFilesLocalAndServerATWM1(parametersStudy, parametersFileTransfer, s
 
 % Transfer highRes anatomy so separate archive folder
 if parametersFileTransfer.bArchiveAnonymisedHighResAnatomySeparately
-    [strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, success] = archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles, parametersFileTransfer);
+    [folderDefinition, strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, success] = archiveAnonymisedHighResAnatomyToServerATWM1(folderDefinition, parametersMriSession,  parametersFileTransfer, parametersStructuralMriSequenceHighRes, aStrLocalPathOriginalDicomFiles);
 end
 
 end
 
 
-function [strFolderOriginalDicomFilesSubject, bSubjectFolderFound, bAbort] = determineSubjectFolderWithOriginalDicomFilesATWM1(folderDefinition, parametersDialog)
-
-global strSubject
-
-[aStrFolderOriginalDicomFilesSubject, nrOfSubjFolders] = searchForFolderContainingSubjectDicomFilesATMW1(folderDefinition);
-
-bAbort = false;
-bSubjectFolderFound = true;
-if nrOfSubjFolders == 0
-    strFolderOriginalDicomFilesSubject = '';
-    bSubjectFolderFound = false;
-    fprintf('No folder containing DICOM files found for subject %s.\nSkipping subject.\n\n', strSubject);
-elseif nrOfSubjFolders == 1
-    strFolderOriginalDicomFilesSubject = aStrFolderOriginalDicomFilesSubject{1};
-else
-    % Special case of more than 1 folder for selected subject
-    bInvalidFolderSelected = true;
-    while bInvalidFolderSelected
-        startFolder = strcat(folderDefinition.dicomFileTransferFromScanner);
-        strTitle = sprintf('Multiple folders exist for subject %s. Please select folder.', strSubject);
-        strFolderOriginalDicomFilesSubject = uigetdir(startFolder, strTitle);
-        if ~isempty(find(strfind(strFolderOriginalDicomFilesSubject, strSubject), 1))
-            bInvalidFolderSelected = false;
-        else
-            strTitle = 'Select DICOM file folder';
-            strMessage = sprintf('No valid DICOM file folder selected for subject %s!\nPlease retry.', strSubject);
-            strButton1 = sprintf('%sRetry%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-            strButton2 = sprintf('%sCancel%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
-            default = strButton1;
-            choice = questdlg(strMessage, strTitle, strButton1, strButton2, default);
-            switch choice
-                case strButton1
-
-                otherwise
-                    bAbort = true;
-                    fprintf('Function aborted by user.'\n);
-            end
-            if bAbort == true
-                bInvalidFolderSelected = false;
-                strFolderOriginalDicomFilesSubject = '';
-            end
-        end
-    end
-end
-if bSubjectFolderFound
-    fprintf('Folder containing DICOM files found for subject %s!\n\n', strSubject);
-end
-
-end
-
-
-function [aStrFolderOriginalDicomFilesSubject, nrOfSubjFolders] = searchForFolderContainingSubjectDicomFilesATMW1(folderDefinition)
-%%% Search for folder containing DICOM files of selected subject
-
-global strSubject
-
-dicomFileTransferFromScanner = folderDefinition.dicomFileTransferFromScanner;
-strucFolderContentTransferFromScanner = dir(dicomFileTransferFromScanner);
-strucFolderContentTransferFromScanner = strucFolderContentTransferFromScanner(3:end);
-nrOfSubjFolders = 0;
-aStrFolderOriginalDicomFilesSubject = {};
-for ccont = 1:numel(strucFolderContentTransferFromScanner)
-    strFolderContent = strucFolderContentTransferFromScanner(ccont).name;
-    strPathSubfolder = strcat(dicomFileTransferFromScanner, strFolderContent);
-    if exist(strPathSubfolder, 'dir')
-        if ~isempty(find(strfind(strPathSubfolder, strSubject), 1))
-            nrOfSubjFolders = nrOfSubjFolders + 1;
-            aStrFolderOriginalDicomFilesSubject{nrOfSubjFolders} = strPathSubfolder;
-        end
-    end
-end
-
-end
-
-
-function [strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles, parametersFileTransfer)
+function [strFolderLocalArchiveDicomFilesGroup, strFolderLocalArchiveDicomFilesSubject, strFolderServerArchiveDicomFilesGroup, strFolderServerArchiveDicomFilesSubject, aStrLocalPathOriginalDicomFiles, bDicomLocalTransfer, bDicomServerTransfer] = transferDicomFilesATWM1(folderDefinition, parametersMriSession, parametersFileTransfer, aStrOriginalDicomFiles, aStrPathOriginalDicomFiles);
 %%% Transfer all files to local computer & server
 
 global strGroup
@@ -280,10 +207,13 @@ global strSubject
 
 [parametersFileTransfer] = calculateFileTransferProgressStepsATWM1(parametersFileTransfer, parametersMriSession.nDicomFiles);
 
+structSubjectArchiveFolders = defineSubjectArchiveFoldersATWM1(folderDefinition);
+
 %%% Copy DICOM files to local archive
 strFileDestinationLocal                 = folderDefinition.strLocal;
-strFolderLocalArchiveDicomFilesGroup    = strcat(folderDefinition.archiveDICOMfiles, strGroup, '\');
-strFolderLocalArchiveDicomFilesSubject  = strcat(strFolderLocalArchiveDicomFilesGroup, strSubject, '\');
+strFolderLocalArchiveDicomFilesGroup    = structSubjectArchiveFolders.strFolderLocalArchiveDicomFilesGroup;
+strFolderLocalArchiveDicomFilesSubject  = structSubjectArchiveFolders.strFolderLocalArchiveDicomFilesSubject;
+
 
 if ~exist(strFolderLocalArchiveDicomFilesSubject, 'dir')
     mkdir(strFolderLocalArchiveDicomFilesSubject);
@@ -306,19 +236,17 @@ end
 
 [bDicomLocalTransfer] = determineDicomFileTransferSuccessATWM1(parametersMriSession, success, strFileDestinationLocal);
 
-%%{
-%%% Copy DICOM files from local archive to server archive (Copying from 
+%%% Copy DICOM files from local archive to server archive (Copying from
 %%% DICOM folder on common to server archive might lead to errors!)
 if parametersFileTransfer.bArchiveFilesOnServer
     strFileDestinationServer                = folderDefinition.strServer;
-    strFolderServerArchiveDicomFiles        = folderDefinition.archiveDICOMfilesServer;
-    strFolderServerArchiveDicomFilesGroup   = strcat(strFolderServerArchiveDicomFiles, strGroup, '\');
-    strFolderServerArchiveDicomFilesSubject = strcat(strFolderServerArchiveDicomFilesGroup, strSubject, '\');
+    strFolderServerArchiveDicomFilesGroup   = structSubjectArchiveFolders.strFolderServerArchiveDicomFilesGroup;
+    strFolderServerArchiveDicomFilesSubject = structSubjectArchiveFolders.strFolderServerArchiveDicomFilesSubject;
     
     if ~exist(strFolderServerArchiveDicomFilesSubject, 'dir')
         mkdir(strFolderServerArchiveDicomFilesSubject);
     end
-
+    
     fprintf('Starting file transfer for subject %s to %s.\n', strSubject, upper(strFileDestinationServer));
     success = [];
     for cf = 1:parametersMriSession.nDicomFiles
@@ -332,7 +260,7 @@ if parametersFileTransfer.bArchiveFilesOnServer
             success(cf) = 1;
         end
     end
-
+    
     [bDicomServerTransfer] = determineDicomFileTransferSuccessATWM1(parametersMriSession, success, strFileDestinationServer);
 else
     fprintf('Files for subject %s are NOT archived on server!\n\n', strSubject);
@@ -340,7 +268,8 @@ else
     strFolderServerArchiveDicomFilesSubject = '';
     bDicomServerTransfer = false;
 end
-%}
+
+
 end
 
 
@@ -382,7 +311,7 @@ else
     bDicomLocalTransfer = false;
     nrOfFilesNotCopied = parametersMriSession.nDicomFiles - sum(success);
     fprintf('Error while copying DICOM files of subject %s to %s!\n', strSubject, upper(strFileDestination));
-	fprintf('%i DICOM files were not copied!\n\n', nrOfFilesNotCopied);
+    fprintf('%i DICOM files were not copied!\n\n', nrOfFilesNotCopied);
 end
 
 end
@@ -393,48 +322,37 @@ function [bLogfilesLocalTransfer, bLogfilesServerTransfer] = transferPresentatio
 global strGroup
 global strSubject
 
-%%% Copy Presentation logfiles
-[aStrPresentationLogfiles, nLogfiles] = defineNamesOfPresentationLogfilesATWM1(parametersStudy, parametersParadigm_WM_MRI);
 
-%%% Determine local path for logfiles
-strFolderLogfilesLocalGroup    = strcat(folderDefinition.logfiles, strGroup, '\');
-strFolderLogfilesLocalSubject  = strcat(strFolderLogfilesLocalGroup, strSubject, '\');
-for cf = 1:nLogfiles
-    aStrPathLocalPresentationLogfiles{cf}           = fullfile(strFolderLogfilesLocalSubject, aStrPresentationLogfiles{cf});
-    aStrPathLocalArchivePresentationLogfiles{cf}    = fullfile(strFolderLocalArchiveDicomFilesSubject, aStrPresentationLogfiles{cf});
-end
-
-%%% Determine server path for logfiles
-strFolderLogfilesServerGroup    = strcat(folderDefinition.logfilesServer, strGroup, '\');
-strFolderLogfilesServerSubject  = strcat(strFolderLogfilesServerGroup, strSubject, '\');
-for cf = 1:nLogfiles
-    aStrPathServerPresentationLogfiles{cf}          = fullfile(strFolderLogfilesServerSubject, aStrPresentationLogfiles{cf});
-    aStrPathServerArchivePresentationLogfiles{cf}   = fullfile(strFolderServerArchiveDicomFilesSubject, aStrPresentationLogfiles{cf});
-end
-
+structSubjectArchiveFolders = defineSubjectArchiveFoldersATWM1(folderDefinition);
+[aStrPresentationLogfiles, nLogfiles, strucPathPresentationLogfiles] = determinePresentationLogfilePathSubjectATWM1(folderDefinition, parametersStudy, parametersParadigm_WM_MRI, structSubjectArchiveFolders);
 
 %%% Copy logfiles from server to local computer and to subject archive
 %%% folders (local and server)
-if ~exist(strFolderLogfilesLocalGroup, 'dir')
-    mkdir(strFolderLogfilesLocalGroup)
+if ~exist(strucPathPresentationLogfiles.strFolderLogfilesLocalGroup, 'dir')
+    mkdir(strucPathPresentationLogfiles.strFolderLogfilesLocalGroup)
 end
-if ~exist(strFolderLogfilesLocalSubject, 'dir')
-    mkdir(strFolderLogfilesLocalSubject)
+if ~exist(strucPathPresentationLogfiles.strFolderLogfilesLocalSubject, 'dir')
+    mkdir(strucPathPresentationLogfiles.strFolderLogfilesLocalSubject)
 end
 
+%%% Copy files from server logfile folder to local logfile folder
 for cf = 1:nLogfiles
-    successLocal(cf)            = copyfile(aStrPathServerPresentationLogfiles{cf}, aStrPathLocalPresentationLogfiles{cf});
+    if ~exist(strucPathPresentationLogfiles.aStrPathServerPresentationLogfiles{cf}, 'file')
+        fprintf('Error! Could not find presentation logfile %s', strucPathPresentationLogfiles.aStrPathServerPresentationLogfiles{cf});
+    end
+    successLocal(cf)            = copyfile(strucPathPresentationLogfiles.aStrPathServerPresentationLogfiles{cf}, strucPathPresentationLogfiles.aStrPathLocalPresentationLogfiles{cf});
 end
 [bLogfilesFolderTransfer] = determinePresentationLogfileTransferSuccessATWM1(nLogfiles, successLocal, parametersFileTransfer.strLocalAchiveFolder);
 
+%%% Copy files from server logfile folder to local archive folder
 for cf = 1:nLogfiles
-    successLocalArchive(cf)     = copyfile(aStrPathServerPresentationLogfiles{cf}, aStrPathLocalArchivePresentationLogfiles{cf});
+    successLocalArchive(cf)     = copyfile(strucPathPresentationLogfiles.aStrPathServerPresentationLogfiles{cf}, strucPathPresentationLogfiles.aStrPathLocalArchivePresentationLogfiles{cf});
 end
 [bLogfilesLocalTransfer] = determinePresentationLogfileTransferSuccessATWM1(nLogfiles, successLocalArchive, parametersFileTransfer.strServerAchiveFolder);
 
 if parametersFileTransfer.bArchiveFilesOnServer
     for cf = 1:nLogfiles
-        successServerArchive(cf)    = copyfile(aStrPathServerPresentationLogfiles{cf}, aStrPathServerArchivePresentationLogfiles{cf});
+        successServerArchive(cf)    = copyfile(strucPathPresentationLogfiles.aStrPathServerPresentationLogfiles{cf}, strucPathPresentationLogfiles.aStrPathServerArchivePresentationLogfiles{cf});
     end
     [bLogfilesServerTransfer] = determinePresentationLogfileTransferSuccessATWM1(nLogfiles, successServerArchive, parametersFileTransfer.strLocalLogfilesFolder);
 else
@@ -455,7 +373,7 @@ else
     bLogfilesTransfer = false;
     nrOfFilesNotCopied = nLogfiles - sum(success);
     fprintf('Error while copying Presentation logfiles of subject %s to %s!\n', strSubject, strLogfilesDestination);
-	fprintf('%i Presentation logfiles were not copied!\n\n', nrOfFilesNotCopied);
+    fprintf('%i Presentation logfiles were not copied!\n\n', nrOfFilesNotCopied);
 end
 
 end
@@ -506,29 +424,36 @@ global iStudy
 global strSubject
 global iSession
 
-strZipFileArchiveDicomFilesSubject              = defineZipFileArchiveDicomFilesSubjectATWM1(parametersStudy);
-strPathZipFileLocalArchiveDicomFilesSubject     = fullfile(strFolderLocalArchiveDicomFilesGroup, strZipFileArchiveDicomFilesSubject);
-strPathZipFileServerArchiveDicomFilesSubject    = fullfile(strFolderServerArchiveDicomFilesGroup, strZipFileArchiveDicomFilesSubject);
+global bTestConfiguration
 
-% Zip local archive folder
-if bDicomLocalTransfer == true && bLogfilesLocalTransfer == true && bParametersFileLocalTransfer == true
-    fprintf('Creating file %s\n\n', strPathZipFileLocalArchiveDicomFilesSubject);
-    aStrZippedFilesLocal    = zip(strPathZipFileLocalArchiveDicomFilesSubject, strFolderLocalArchiveDicomFilesSubject);
-    strMessage = sprintf('MRI session files successfully stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject); 
-else
-    strMessage = sprintf('MRI session files were not stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject);
-end
-
-% Copy local zip file to server archive folder
-if parametersFileTransfer.bArchiveFilesOnServer
-    if bDicomServerTransfer == true && bLogfilesServerTransfer == true && bParametersFileServerTransfer == true
-        success = copyfile(strPathZipFileLocalArchiveDicomFilesSubject, strPathZipFileServerArchiveDicomFilesSubject);
-        if success
-            fprintf('MRI session files successfully stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
-        else
-            fprintf('MRI session files were not stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
+if ~bTestConfiguration
+    strZipFileArchiveDicomFilesSubject              = defineZipFileArchiveDicomFilesSubjectATWM1(parametersStudy);
+    strPathZipFileLocalArchiveDicomFilesSubject     = fullfile(strFolderLocalArchiveDicomFilesGroup, strZipFileArchiveDicomFilesSubject);
+    strPathZipFileServerArchiveDicomFilesSubject    = fullfile(strFolderServerArchiveDicomFilesGroup, strZipFileArchiveDicomFilesSubject);
+    
+    % Zip local archive folder
+    if bDicomLocalTransfer == true && bLogfilesLocalTransfer == true && bParametersFileLocalTransfer == true
+        fprintf('Creating file %s\n\n', strPathZipFileLocalArchiveDicomFilesSubject);
+        aStrZippedFilesLocal    = zip(strPathZipFileLocalArchiveDicomFilesSubject, strFolderLocalArchiveDicomFilesSubject);
+        strMessage = sprintf('MRI session files successfully stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject);
+    else
+        strMessage = sprintf('MRI session files were not stored in file %s.\n', strPathZipFileLocalArchiveDicomFilesSubject);
+    end
+    
+    % Copy local zip file to server archive folder
+    if parametersFileTransfer.bArchiveFilesOnServer
+        if bDicomServerTransfer == true && bLogfilesServerTransfer == true && bParametersFileServerTransfer == true
+            success = copyfile(strPathZipFileLocalArchiveDicomFilesSubject, strPathZipFileServerArchiveDicomFilesSubject);
+            if success
+                fprintf('MRI session files successfully stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
+            else
+                fprintf('MRI session files were not stored in file %s.\n', strPathZipFileServerArchiveDicomFilesSubject);
+            end
         end
     end
+else
+    fprintf('Skipping creation of zip file in test mode.\n\n')
 end
-    
+
+
 end

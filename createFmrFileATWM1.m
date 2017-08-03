@@ -28,7 +28,7 @@ for cf = 1:parametersProjectFiles.nrOfFmrFilesToBeCreated
         %%% and run BrainVoyager as a COM object
         hFunction = str2func(sprintf('runBrainVoyagerQX%s', iStudy));
         %hFunction = str2func(sprintf('runBrainVoyager%s', iStudy));
-        [bvqx, parametersComProcess, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
+        [bvqx, parametersComProcess, parametersBrainVoyager, bIncompatibleBrainVoyagerVersion] = feval(hFunction);
         if bIncompatibleBrainVoyagerVersion == true
             bFileCreated = false;
             return

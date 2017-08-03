@@ -43,7 +43,7 @@ end
 %%% Proceed here for full subject enrollment
 %%% Open dialog to enter subject information
 hFunction = str2func(sprintf('enterSubjectInformation%s', iStudy));
-[subjectInformation] = feval(hFunction, parametersGroups, parametersDialog, bFullEnrollment)
+[subjectInformation] = feval(hFunction, parametersGroups, parametersDialog, bFullEnrollment);
 if isempty(subjectInformation)
     return
 end
