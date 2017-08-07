@@ -1,5 +1,8 @@
 function calculateCorrectedSegmentationThresholdATWM1()
 
+clear all
+clc
+
 global iStudy
 iStudy = 'ATWM1';
 

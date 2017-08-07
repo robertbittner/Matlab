@@ -1,4 +1,4 @@
-function [status, pathSubjectArrayFile] = addNewSubjectCodeATWM1(aSubject);
+function [status, pathSubjectArrayFile] = addNewSubjectCodeATWM1(aSubject)
 %%% Add new subject code to selected group in aSubject
 
 global iStudy

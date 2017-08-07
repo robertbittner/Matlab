@@ -57,9 +57,9 @@ end
 function [fileIndex] = readFileIndicesForFunctionalRunsATWM1(parametersStudy, parametersMriSession)
 
 strFileIndexFunctionalRuns = 'fileIndexFmr';
-fileIndex.WM    = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strWorkingMemoryTask))))';
-fileIndex.LOC   = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strLocalizer))))';
-fileIndex.COPE  = (parametersMriSession.(genvarname(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strMethodEpiDistortionCorrection))))';
+fileIndex.WM    = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strWorkingMemoryTask))))';
+fileIndex.LOC   = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strLocalizer))))';
+fileIndex.COPE  = (parametersMriSession.(matlab.lang.makeValidName(sprintf('%s_%s', strFileIndexFunctionalRuns, parametersStudy.strMethodEpiDistortionCorrection))))';
 
 
 end
@@ -86,10 +86,8 @@ parametersMriSession.nRunsWithSpecifiedNumberOfMeasurements = numel(parametersMr
 
 if parametersMriSession.nTotalRuns ~= parametersMriSession.nRunsWithSpecifiedNumberOfMeasurements
     parametersMriSession.bNoCriticalErrorsDetected = false;
-    strMessage = sprintf('Error!\nNumber of total runs (%i)\ndoes not match the number of runs with\na specified number of measurements (%i)', parametersMriSession.nTotalRuns, parametersMriSession.nRunsWithSpecifiedNumberOfMeasurements);
-    disp(strMessage);
-    strMessage = sprintf('\nAborting analysis of file %s', parametersMriSession.strParametersMriSessionFile);
-    disp(strMessage);
+    fprintf('Error!\nNumber of total runs (%i)\ndoes not match the number of runs with\na specified number of measurements (%i)\n', parametersMriSession.nTotalRuns, parametersMriSession.nRunsWithSpecifiedNumberOfMeasurements);
+    fprintf('\nAborting analysis of file %s\n', parametersMriSession.strParametersMriSessionFile);
 else
     parametersMriSession.bNoCriticalErrorsDetected = true;
 end
@@ -153,7 +151,7 @@ nRunTypes = nRunTypes(1);
 
 for c = 1:nRunTypes
     for cr = 1:aStrRunTypes{c, 3}
-        parametersMriSession.(genvarname(aStrRunTypes{c, 4}))(cr) = parametersMriSession.nMeasurementsInRun(aStrRunTypes{c, 1}(cr));
+        parametersMriSession.(matlab.lang.makeValidName(aStrRunTypes{c, 4}))(cr) = parametersMriSession.nMeasurementsInRun(aStrRunTypes{c, 1}(cr));
         parametersMriSession.bMatchingNumberOfMeasurements{c, cr} = isequal(parametersMriSession.(genvarname(aStrRunTypes{c, 4}))(cr), aStrRunTypes{c, 5});
         hFunction = str2func(sprintf('detectStructuralRun%s', iStudy));
         parametersMriSession = feval(hFunction, parametersMriSession, parametersStructuralMriSequenceHighRes, aStrRunTypes, c, cr, strNrOfMeasurementsInStructuralRun);
@@ -171,8 +169,7 @@ else
     parametersMriSession.bAllNumberOfMeasurementValuesCorrect = false;
     [row, col] = find(~parametersMriSession.bMatchingNumberOfMeasurements);
     for c = 1:numel(row)
-        strMessage = sprintf('Error!\nNumber of Measurements does not match the predefined values for:\n%s run %i\nOverall run #: %i\n\n', aStrRunTypes{row(c), 2}, col(c), aStrRunTypes{row(c), 1}(col(c)));
-        disp(strMessage);
+        fprintf('Error!\nNumber of Measurements does not match the predefined values for:\n%s run %i\nOverall run #: %i\n\n', aStrRunTypes{row(c), 2}, col(c), aStrRunTypes{row(c), 1}(col(c)));
     end
 end
 
@@ -215,15 +212,13 @@ end
 
 function parametersMriSession = evaluateStructuralRunsATWM1(parametersMriSession)
 if parametersMriSession.bStructuralMriStandarResAcquired == false && parametersMriSession.bStructuralMriLowResAcquired == true
-    strMessage = sprintf('Warning!\nNo standard resolution structural run acquired!');
-    disp(strMessage);
+    fprintf('Warning!\nNo standard resolution structural run acquired!\n');
 end
 if parametersMriSession.bStructuralMriStandarResAcquired || parametersMriSession.bStructuralMriLowResAcquired == true
     parametersMriSession.bValidStructuralMriAcquired = true;
 else
     parametersMriSession.bValidStructuralMriAcquired = false;
-    strMessage = sprintf('Error!\nNo valid structural run acquired!');
-    disp(strMessage);
+    fprintf('Error!\nNo valid structural run acquired!\n');
 end
 
 
@@ -247,8 +242,7 @@ if bAllRunsAcquired == true
     parametersMriSession.bAllRunsAcquired = true;
 else
     parametersMriSession.bAllRunsAcquired = false;
-    strMessage = sprintf('Not all runs acquired in %s %i', parametersStudy.strSession, iSession);
-    disp(strMessage);
+    fprintf('Not all runs acquired in %s %i\n', parametersStudy.strSession, iSession);
 end
 
 
@@ -269,10 +263,8 @@ if parametersMriSession.bAnyError == false
     parametersMriSession.bNoCriticalErrorsDetected = true;
 else
     parametersMriSession.bNoCriticalErrorsDetected = false;
-    strMessage = sprintf('\nOne or more errors found in file %s!', parametersMriSession.strParametersMriSessionFile);
-    disp(strMessage);
-    strMessage = sprintf('Data processing cannot proceed!\nPlease re-check the file manually.');
-    disp(strMessage);
+    fprintf('\nOne or more errors found in file %s!\n', parametersMriSession.strParametersMriSessionFile);
+    fprintf('Data processing cannot proceed!\nPlease re-check the file manually.\n');
 end
 
 

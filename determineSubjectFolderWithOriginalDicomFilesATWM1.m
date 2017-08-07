@@ -10,6 +10,36 @@ if nrOfSubjFolders == 0
     strFolderOriginalDicomFilesSubject = '';
     bSubjectFolderFound = false;
     fprintf('No folder containing DICOM files found for subject %s.\nSkipping subject.\n\n', strSubject);
+    
+    %{
+    while ~bSubjectFolderFound
+        startFolder = strcat(folderDefinition.dicomFileTransferFromScanner);
+        strTitle = sprintf('Multiple folders exist for subject %s. Please select folder.', strSubject);
+        strFolderOriginalDicomFilesSubject = uigetdir(startFolder, strTitle);
+        if ~isempty(find(strfind(strFolderOriginalDicomFilesSubject, strSubject), 1))
+            bInvalidFolderSelected = false;
+        else
+            strTitle = 'Select DICOM file folder';
+            strMessage = sprintf('No valid DICOM file folder selected for subject %s!\nPlease retry.', strSubject);
+            strButton1 = sprintf('%sRetry%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+            strButton2 = sprintf('%sCancel%s', parametersDialog.strEmpty, parametersDialog.strEmpty);
+            default = strButton1;
+            choice = questdlg(strMessage, strTitle, strButton1, strButton2, default);
+            switch choice
+                case strButton1
+                    
+                otherwise
+                    bAbort = true;
+                    fprintf('Function aborted by user.'\n);
+            end
+            if bAbort == true
+                bInvalidFolderSelected = false;
+                strFolderOriginalDicomFilesSubject = '';
+            end
+        end
+    end
+    %}
+    
 elseif nrOfSubjFolders == 1
     strFolderOriginalDicomFilesSubject = aStrFolderOriginalDicomFilesSubject{1};
 else
@@ -30,7 +60,7 @@ else
             choice = questdlg(strMessage, strTitle, strButton1, strButton2, default);
             switch choice
                 case strButton1
-
+                    
                 otherwise
                     bAbort = true;
                     fprintf('Function aborted by user.'\n);

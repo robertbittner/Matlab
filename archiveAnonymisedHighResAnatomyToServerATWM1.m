@@ -5,6 +5,9 @@ global iStudy
 global strGroup
 global strSubject
 
+parametersFileTransfer.bArchiveFilesOnServer = true;
+
+
 parametersDicomFileAnonymisation = eval(['parametersDicomFileAnonymisation', iStudy]);
 
 folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderSubjectATWM1(folderDefinition, parametersDicomFileAnonymisation, parametersStructuralMriSequenceHighRes);
@@ -132,18 +135,27 @@ end
 function [strPathServerZipFileAnonymisedHighResAnatomy, success] = copyZipFileWithAnonymisedDicomFilesToServerATWM1(folderDefinition, strZipFileAnonymisedHighResAnatomy, strPathLocalZipFileAnonymisedHighResAnatomy)
 
 global strSubject
-
+%folderDefinition = folderDefinition
 %try
     %%% Copy zip file to server folder
+    %{
     if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomyGroupServer, 'dir')
         mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomyGroupServer);
     end
     if ~exist(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer, 'dir')
         mkdir(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer);
     end
+    %}
     strPathServerZipFileAnonymisedHighResAnatomy = fullfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer, strZipFileAnonymisedHighResAnatomy);
+    %anonymisedDataArchiveHighResAnatomySubject = anonymisedDataArchiveHighResAnatomySubject
+    %anonymisedDataArchiveHighResAnatomySubjectServer = anonymisedDataArchiveHighResAnatomySubjectServer
+    
     fprintf('Storing anonymised DICOM files for high-res anatomy of subject %s in zip archive on server!\n\n', strSubject);
-    %[success, strCopyMessage] = copyfile(strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy);
+    %[success, strCopyMessage] = copyfile(strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy, 'f')
+    %test = exist(folderDefinition.anonymisedDataArchiveHighResAnatomySubject, 'file')
+    [success, strCopyMessage] = copyfile(folderDefinition.anonymisedDataArchiveHighResAnatomySubject, folderDefinition.anonymisedDataArchiveHighResAnatomySubjectServer, 'f')
+    
+    %{
     strPathLocalZipFileAnonymisedHighResAnatomy = strPathLocalZipFileAnonymisedHighResAnatomy
     strPathServerZipFileAnonymisedHighResAnatomy = strPathServerZipFileAnonymisedHighResAnatomy
     
@@ -151,7 +163,7 @@ global strSubject
     %[{/a|/b}] 
     strCommand = sprintf('copy [/y] %s %s', strPathLocalZipFileAnonymisedHighResAnatomy, strPathServerZipFileAnonymisedHighResAnatomy);
     [status, cmdout] = system(strCommand)
-    
+    %}
     if success
         fprintf('Anonymised DICOM files for high-res anatomy of subject %s successfully stored in zip archive on server!\n\n', strSubject);
     else
