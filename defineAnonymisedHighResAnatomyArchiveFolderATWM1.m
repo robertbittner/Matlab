@@ -1,4 +1,4 @@
-function folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderATWM1(folderDefinition, parametersDicomFileAnonymisation)
+function folderDefinition = defineAnonymisedHighResAnatomyArchiveFolderATWM1(folderDefinition)
 
 global iStudy
 global strGroup
@@ -8,14 +8,12 @@ parametersStructuralMriSequenceHighRes  = eval(['parametersStructuralMriSequence
 
 strAnonymisedHighResAnatomyArchive = strcat('___', upper(folderDefinition.strAnonymizedDataArchive), '_', parametersStructuralMriSequenceHighRes.strResolution, '_', parametersStructuralMriSequenceHighRes.strSequence);
 
-folderDefinition.archiveAnonymisedHighResAnatomy        = strcat(folderDefinition.archiveDICOMfiles, strAnonymisedHighResAnatomyArchive, '\');
-folderDefinition.archiveAnonymisedHighResAnatomyServer 	= strcat(folderDefinition.archiveDICOMfilesServer, strAnonymisedHighResAnatomyArchive, '\');
+folderDefinition.archiveAnonymisedHighResAnatomy          = strcat(folderDefinition.archiveDICOMfiles, strAnonymisedHighResAnatomyArchive, '\');
+folderDefinition.archiveAnonymisedHighResAnatomyServer    = strcat(folderDefinition.archiveDICOMfilesServer, strAnonymisedHighResAnatomyArchive, '\');
 
-folderDefinition.archiveAnonymisedHighResAnatomyGroup       = strcat(folderDefinition.archiveAnonymisedHighResAnatomy, strGroup, '\');
-folderDefinition.archiveAnonymisedHighResAnatomySubject     = strcat(folderDefinition.archiveAnonymisedHighResAnatomyGroup, strSubject, parametersDicomFileAnonymisation.strFolderWarning, '\');
-folderDefinition.archiveAnonymisedHighResAnatomySubjectAnon = strcat(folderDefinition.archiveAnonymisedHighResAnatomySubject, parametersStructuralMriSequenceHighRes.strSequence, '\');
+folderDefinition.archiveAnonymisedHighResAnatomyGroup               = strcat(folderDefinition.archiveAnonymisedHighResAnatomy, strGroup, '\');
+folderDefinition.archiveAnonymisedHighResAnatomySubject             = strcat(folderDefinition.archiveAnonymisedHighResAnatomyGroup, strSubject, '_DO_NOT_COPY_THIS_FOLDER_COPY_ONLY_ANONYMISED_SUBFOLDER', '\');
+folderDefinition.archiveAnonymisedHighResAnatomySubjectSubfolder    = strcat(folderDefinition.archiveAnonymisedHighResAnatomySubject, parametersStructuralMriSequenceHighRes.strSequence, '\');
 
-folderDefinition.archiveAnonymisedHighResAnatomyGroupServer     = strcat(folderDefinition.archiveAnonymisedHighResAnatomyServer, strGroup, '\');
-folderDefinition.archiveAnonymisedHighResAnatomySubjectServer   = strcat(folderDefinition.archiveAnonymisedHighResAnatomyGroupServer, strSubject, parametersDicomFileAnonymisation.strFolderWarning, '\');
 
 end
